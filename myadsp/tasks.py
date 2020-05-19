@@ -224,6 +224,7 @@ def task_process_myads(message):
         # update author table w/ last sent datetime
         with app.session_scope() as session:
             q = session.query(AuthorInfo).filter_by(id=userid).one()
+            # should we set "last_sent" for both weekly and daily queries?
             q.last_sent = adsputils.get_date()
 
             session.commit()
