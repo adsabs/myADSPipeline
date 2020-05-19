@@ -53,7 +53,7 @@ def task_process_myads(message):
             session.flush()
             last_sent = author.last_sent
             session.commit()
-        if last_sent and last_sent.date() == adsputils.get_date().date():
+        if message['frequency'] == 'daily' and last_sent and last_sent.date() == adsputils.get_date().date():
             # already sent email today
             if not message['force']:
                 logger.warning('Email for user {0} already sent today'.format(userid))
