@@ -1,4 +1,4 @@
-git+https://github.com/adsabs/ADSPipelineUtils.git@v1.2.3
+adsputils==v1.2.4
 alembic==0.9.1
 psycopg2==2.8.3
 Jinja2==2.11.2
