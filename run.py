@@ -442,7 +442,9 @@ if __name__ == '__main__':
         else:
             arxiv_complete = False
             try:
-                arxiv_complete = _arxiv_ingest_complete(sleep_delay=300, sleep_timeout=36000, admin_email=args.admin_email)
+                arxiv_complete = _arxiv_ingest_complete(sleep_delay=300,
+                                                        sleep_timeout=config.get('SLEEP_TIMEOUT', 43200),
+                                                        admin_email=args.admin_email)
             except Exception as e:
                 logger.warning('arXiv ingest: code failed with an exception: {0}'.format(e))
                 sys.exit(1)
@@ -466,7 +468,9 @@ if __name__ == '__main__':
         else:
             astro_complete = False
             try:
-                astro_complete = _astro_ingest_complete(sleep_delay=300, sleep_timeout=36000, admin_email=args.admin_email)
+                astro_complete = _astro_ingest_complete(sleep_delay=300,
+                                                        sleep_timeout=config.get('SLEEP_TIMEOUT', 43200),
+                                                        admin_email=args.admin_email)
             except Exception as e:
                 logger.warning('astro ingest: code failed with an exception: {0}'.format(e))
                 sys.exit(1)
