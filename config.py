@@ -32,6 +32,9 @@ NUM_QUERIES_TWO_COL = 3
 MAX_NUM_ROWS_DAILY = 2000
 MAX_NUM_ROWS_WEEKLY = 5
 
+# Sleep the start of processing if Solr isn't updated (12*60*60 seconds)
+SLEEP_TIMEOUT = 43200
+
 # Reschedule sending if there's an error (units=seconds)
 MYADS_RESEND_WINDOW = 60*10
 # Reschedule sending if there's an error with Solr (units=seconds)
