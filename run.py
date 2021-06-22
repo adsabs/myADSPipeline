@@ -63,7 +63,7 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
             msg = utils.send_email(email_addr=admin_email,
                                    payload_plain=msg_text,
                                    payload_html=msg_text,
-                                   subject='arXiv ingest failed')
+                                   subject='arXiv ingest failed ({0})'.format(_get_environment()))
         return None
 
     arxiv_records.sort()
@@ -116,7 +116,7 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
         msg = utils.send_email(email_addr=admin_email,
                                payload_plain=msg_text,
                                payload_html=msg_text,
-                               subject='arXiv ingest failed')
+                               subject='arXiv ingest failed ({0})'.format(_get_environment()))
 
     return None
 
@@ -165,7 +165,7 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
                 msg = utils.send_email(email_addr=admin_email,
                                        payload_plain=msg_text,
                                        payload_html=msg_text,
-                                       subject='Astronomy ingest failed')
+                                       subject='Astronomy ingest failed ({0})'.format(_get_environment()))
 
             return None
 
@@ -200,7 +200,7 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
             msg = utils.send_email(email_addr=admin_email,
                                    payload_plain=msg_text,
                                    payload_html=msg_text,
-                                   subject='Astronomy ingest failed')
+                                   subject='Astronomy ingest failed ({0})'.format(_get_environment()))
         return None
 
     # get several randomly selected bibcodes, in case one had ingest issues
@@ -252,10 +252,27 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
         msg = utils.send_email(email_addr=admin_email,
                                payload_plain=msg_text,
                                payload_html=msg_text,
-                               subject='Astronomy ingest failed')
+                               subject='Astronomy ingest failed ({0})'.format(_get_environment()))
 
     return None
 
+def _get_environment():
+    """
+    Helper function to return a environment name for including in admin emails
+    :return: env: User-readable environment name
+    """
+    try:
+        which_api = config.get('_API_HOST').split('.')[0]
+    except:
+        return 'unknown host'
+    if which_api == 'api':
+        env = 'prod'
+    elif which_api == 'dev':
+        env = 'dev'
+    else:
+        env = 'unknown host'
+
+    return env
 
 def process_myads(since=None, user_ids=None, user_emails=None, test_send_to=None, admin_email=None, force=False,
                   frequency='daily', test_bibcode=None, **kwargs):
@@ -305,7 +322,7 @@ def process_myads(since=None, user_ids=None, user_emails=None, test_send_to=None
         msg = utils.send_email(email_addr=admin_email,
                                payload_plain='Processing started for {}'.format(get_date()),
                                payload_html='Processing started for {}'.format(get_date()),
-                               subject='myADS {0} processing has started'.format(frequency))
+                               subject='myADS {0} processing has started ({1})'.format(frequency, _get_environment()))
 
     # if since keyword not provided, since is set to timestamp of last processing
     if not since or isinstance(since, basestring) and since.strip() == "":
