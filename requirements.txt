@@ -4,3 +4,4 @@ psycopg2==2.8.3
 Jinja2==2.11.2
 portalocker==1.7.1
 boto3==1.24.72
+markupsafe==2.0.1
