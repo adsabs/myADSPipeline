@@ -37,6 +37,7 @@ def task_process_myads(message):
             even if they were already processed today)
          'test_send_to': email address to send output to, if not that of the user (for testing)
          'retries': number of retries attempted
+         'audio_files': dict, key is bibcode, value is audio file name
         }
     :return: no return
     """
@@ -132,6 +133,12 @@ def task_process_myads(message):
     setup = r.json()
     payload = []
     has_results = 0
+    if message.get('audio_files'):
+        audio_file_dict = message.get('audio_files')
+        audio_bib = audio_file_dict.keys()
+        all_audio_out = {b["title"]: b["file"] for b in audio_file_dict}
+    else:
+        audio_bib = []
     for s in setup:
         if s['frequency'] == message['frequency']:
             # only return 5 results, unless it's the daily arXiv posting, then return max
@@ -187,6 +194,9 @@ def task_process_myads(message):
                 else:
                     results = r['results']
 
+                audio_out_dict = {audio_file_dict[r['bibcode']]['title']: audio_file_dict[r['bibcode']]['file']
+                                  for r in results if r['bibcode'] in audio_bib}
+
                 # keep track of queries that have returned results
                 if results:
                     has_results += 1
@@ -197,7 +207,10 @@ def task_process_myads(message):
                                 'results': results,
                                 'query': r['query'],
                                 'qtype': qtype,
-                                'id': s['id']})
+                                'id': s['id'],
+                                'audio_files': audio_out_dict,
+                                'all_audio_files': all_audio_out
+                                })
         else:
             # wrong frequency for this round of processing
             continue
