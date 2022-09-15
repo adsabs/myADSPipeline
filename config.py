@@ -21,6 +21,7 @@ API_VAULT_MYADS_USERS = API_ENDPOINT + '/v1/vault/myads-users/%s'
 API_VAULT_MYADS_SETUP = API_ENDPOINT + '/v1/vault/get-myads/%s'
 API_VAULT_MYADS_SETUP_DATE = API_ENDPOINT + '/v1/vault/get-myads/%s/%s'
 API_ADSWS_USER_EMAIL = API_ENDPOINT + '/v1/user/%s'
+API_EXPORT_CUSTOM = API_ENDPOINT + '/v1/export/custom'
 
 ARXIV_URL = 'https://ui.adsabs.harvard.edu/link_gateway/{0}/EPRINT_HTML?utm_source=myads&utm_medium=email&utm_campaign=type:{1}&utm_term={2}&utm_content=rank:{3}'
 
