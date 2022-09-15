@@ -65,23 +65,6 @@
                                         <tr>
                                             <td align="center" valign="top" style="width:100%;">
                                                 <h3 style="margin-top: 0;margin-right: 0;margin-bottom: 10px;margin-left: 0;">myADS - {{ frequency.capitalize() }} email ({{ date }})</h3>
-                                                {% if p.audio_files|length > 0 %}
-                                                    <form method="post" action="XXX" class="inline">
-                                                      <input
-                                                        type="hidden"
-                                                        name="sources"
-                                                        value={{ p.all_audio_files }}
-                                                      />
-                                                      <button
-                                                        type="submit"
-                                                        name="submit_param"
-                                                        value="submit_value"
-                                                        class="link-button"
-                                                      >
-                                                        Listen to all astro-ph
-                                                      </button>
-                                                    </form>
-                                                {% endif %}
                                             </td>
                                         </tr>
                                         <tr>

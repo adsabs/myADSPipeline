@@ -139,6 +139,7 @@ def task_process_myads(message):
         all_audio_out = {b["title"]: b["file"] for b in audio_file_dict}
     else:
         audio_bib = []
+        all_audio_out = {}
     for s in setup:
         if s['frequency'] == message['frequency']:
             # only return 5 results, unless it's the daily arXiv posting, then return max
