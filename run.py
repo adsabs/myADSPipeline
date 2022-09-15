@@ -344,7 +344,7 @@ def create_audio(bib_dict=None):
         full_line = prepend + text + append
 
         response = polly_client.start_speech_synthesis_task(VoiceId=random.choice(polly_voices),
-                                                            OutputS3BucketName='XXX',
+                                                            OutputS3BucketName=config.get('AWS_BUCKET'),
                                                             OutputS3KeyPrefix=bibcode,
                                                             OutputFormat='mp3',
                                                             Text=full_line,
