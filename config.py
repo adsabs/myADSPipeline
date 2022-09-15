@@ -9,6 +9,9 @@ CELERY_INCLUDE = ['myadsp.tasks']
 CELERY_BROKER = 'pyamqp://'
 
 API_TOKEN = 'fix me'
+AWS_ID = 'fix'
+AWS_KEY = 'fix'
+AWS_BUCKET = 'fix'
 
 UI_ENDPOINT = 'https://ui.adsabs.harvard.edu'
 ABSTRACT_UI_ENDPOINT = UI_ENDPOINT + '/abs/{0}/abstract?utm_source=myads&utm_medium=email&utm_campaign=type:{1}&utm_term={2}&utm_content=rank:{3}'

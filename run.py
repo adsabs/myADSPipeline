@@ -325,8 +325,8 @@ def create_audio(bib_dict=None):
         exported_text.remove("")
 
     polly_client = boto3.Session(
-        aws_access_key_id='',
-        aws_secret_access_key='',
+        aws_access_key_id=config.get('AWS_ID'),
+        aws_secret_access_key=config.get('AWS_KEY'),
         region_name='us-east-1').client('polly')
 
     audio_dict = {}
@@ -344,7 +344,7 @@ def create_audio(bib_dict=None):
         full_line = prepend + text + append
 
         response = polly_client.start_speech_synthesis_task(VoiceId=random.choice(polly_voices),
-                                                            OutputS3BucketName='XXX',
+                                                            OutputS3BucketName=config.get('AWS_BUCKET'),
                                                             OutputS3KeyPrefix=bibcode,
                                                             OutputFormat='mp3',
                                                             Text=full_line,
