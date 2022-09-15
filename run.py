@@ -109,7 +109,7 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
                            headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
         logger.info('Total number of arXiv bibcodes ingested: {}'.format(q.json()['response']['numFound']))
 
-        q = app.client.get('{0}?q={1}&fl=bibcode,title'.format(config.get('API_SOLR_QUERY_ENDPOINT'),
+        q = app.client.get('{0}?q={1}&fl=bibcode,title&rows=2000'.format(config.get('API_SOLR_QUERY_ENDPOINT'),
                                               quote_plus('bibstem:arxiv arxiv_class:"astro-ph.*" entdate:["{0}Z00:00" TO NOW] '
                                                          'pubdate:[{1}-00 TO *]'.format(start_date, beg_pubyear))),
                            headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
@@ -313,7 +313,7 @@ def create_audio(bib_dict=None):
                    '<break time="1s"/> Source <break time="0.5s"/> %J <break time="1s"/> Abstract ' \
                    '<break time="0.5s"/> %B Bibcode %R'
 
-    bibcodes = bib_dict.keys()
+    bibcodes = list(bib_dict.keys())
     response_export = app.client.post(config.get('API_EXPORT_CUSTOM'),
                                       json={"bibcode": bibcodes, "format": audio_format},
                                       headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
@@ -343,17 +343,23 @@ def create_audio(bib_dict=None):
 
         full_line = prepend + text + append
 
-        response = polly_client.start_speech_synthesis_task(VoiceId=random.choice(polly_voices),
-                                                            OutputS3BucketName=config.get('AWS_BUCKET'),
-                                                            OutputS3KeyPrefix=bibcode,
-                                                            OutputFormat='mp3',
-                                                            Text=full_line,
-                                                            Engine='neural',
-                                                            TextType='ssml')
-
-        audio_dict[bibcode] = {"title": bib_dict["bibcode"]["title"],
-                               "file": response['SynthesisTask']['OutputUri']}
-
+        try:
+            response = polly_client.start_speech_synthesis_task(VoiceId=random.choice(polly_voices),
+                                                                OutputS3BucketName=config.get('AWS_BUCKET'),
+                                                                OutputS3KeyPrefix=bibcode,
+                                                                OutputFormat='mp3',
+                                                                Text=full_line,
+                                                                Engine='neural',
+                                                                TextType='ssml')
+        except Exception as err:
+            logger.warning("Audio creation failed for bibcode %s. Bad line is: %s. Full error: %s",
+                           bibcode, full_line, err)
+            continue
+        try:
+            audio_dict[bibcode] = {"title": bib_dict[bibcode]["title"][0],
+                                   "file": response['SynthesisTask']['OutputUri']}
+        except KeyError:
+            continue
     return audio_dict
 
 def process_myads(since=None, user_ids=None, user_emails=None, test_send_to=None, admin_email=None, force=False,
