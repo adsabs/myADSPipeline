@@ -284,45 +284,33 @@ def _get_environment():
 
     return env
 
+
 def _audio_cleanup(input_text=None):
     text_list = input_text.split('Bibcode')
 
     text = text_list[0]
     bibcode_out = text_list[1].rstrip('\n').strip()
 
-    text_list = text.split('<break time="0.5s"/>')
+    text = re.sub("&", "&amp;", text)  # ensure that the ampersand is replaced first
+    reserve_dict = {
+        "\"": "&quot;",
+        "\'": "&apos",
+        "<": "&lt;",
+        ">": "&gt;",
+        "Article_Title": 'Title <break time="0.5s"/>',
+        "Article_Author": '<break time="1s"/> Author <break time="0.5s"/>',
+        "Article_Source": '<break time="1s"/> Source <break time="0.5s"/>',
+        "Article_Abstract": '<break time="1s"/> Abstract <break time="0.5s"/>'
+    }
 
-    sub_text = text_list[-1]
-
-    sub_text = re.sub("\"", "&quot;", sub_text)
-    sub_text = re.sub("\'", "&apos", sub_text)
-    sub_text = re.sub("&", "&amp;", sub_text)
-    sub_text = re.sub("<", "&lt;", sub_text)
-    sub_text = re.sub(">", "&gt;", sub_text)
-
-    text_list[-1] = sub_text
-
-    text = '<break time="0.5s"/>'.join(text_list)
-
-    text = re.sub("arXiv", "archive", text)
+    for key, value in reserve_dict.items():
+        text = re.sub(key, value, text)
 
     return text, bibcode_out
 
+
 def create_audio(bib_dict=None):
-    audio_format = 'Title <break time="0.5s"/> %T <break time="1s"/> Author <break time="0.5s"/> %2.2O ' \
-                   '<break time="1s"/> Source <break time="0.5s"/> %J <break time="1s"/> Abstract ' \
-                   '<break time="0.5s"/> %B Bibcode %R'
-
     bibcodes = list(bib_dict.keys())
-    response_export = app.client.post(config.get('API_EXPORT_CUSTOM'),
-                                      json={"bibcode": bibcodes, "format": audio_format},
-                                      headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
-
-    exported_text = json.loads(response_export.text)
-    exported_text = exported_text['export'].split('\n')
-
-    while "" in exported_text:
-        exported_text.remove("")
 
     polly_client = boto3.Session(
         aws_access_key_id=config.get('AWS_ID'),
@@ -331,8 +319,18 @@ def create_audio(bib_dict=None):
 
     audio_dict = {}
     polly_voices = ['Joanna', 'Lupe', 'Matthew', 'Amy']
-    for line in exported_text:
-        text, bibcode = _audio_cleanup(line)
+    audio_format = 'Article_Title %T Article_Author %2.2O Article_Source %J Article_Abstract %B Bibcode %R'
+    for bib in bibcodes:
+        response_export = app.client.post(config.get('API_EXPORT_CUSTOM'),
+                                          json={"bibcode": bib, "format": audio_format},
+                                          headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
+
+        try:
+            exported_text = response_export.json()['export']
+        except Exception as err:
+            continue
+
+        text, bibcode = _audio_cleanup(exported_text)
 
         prepend = '<?xml version="1.0"?> <speak version="1.1" xmlns="http://www.w3.org/2001/10/synthesis" ' \
                   'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' \
@@ -350,7 +348,8 @@ def create_audio(bib_dict=None):
                                                                 OutputFormat='mp3',
                                                                 Text=full_line,
                                                                 Engine='neural',
-                                                                TextType='ssml')
+                                                                TextType='ssml',
+                                                                LexiconNames=["astro"])
         except Exception as err:
             logger.warning("Audio creation failed for bibcode %s. Bad line is: %s. Full error: %s",
                            bibcode, full_line, err)
