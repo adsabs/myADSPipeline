@@ -136,7 +136,9 @@ def task_process_myads(message):
     if message.get('audio_files'):
         audio_file_dict = message.get('audio_files')
         audio_bib = audio_file_dict.keys()
-        all_audio_out = {b["title"]: b["file"] for b in audio_file_dict}
+        all_audio_out = {}
+        for b in audio_bib:
+            all_audio_out[audio_file_dict[b]["title"]] = audio_file_dict[b]["file"]
     else:
         audio_bib = []
         all_audio_out = {}
@@ -209,8 +211,8 @@ def task_process_myads(message):
                                 'query': r['query'],
                                 'qtype': qtype,
                                 'id': s['id'],
-                                'audio_files': audio_out_dict,
-                                'all_audio_files': all_audio_out
+                                'audio_files': json.dumps(audio_out_dict),
+                                'all_audio_files': json.dumps(all_audio_out)
                                 })
         else:
             # wrong frequency for this round of processing

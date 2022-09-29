@@ -10,6 +10,7 @@ except ImportError:
     from urllib import urlencode, quote_plus
 import json
 import datetime
+import base64
 
 import adsputils
 from myadsp import app, utils
@@ -105,7 +106,7 @@ class TestmyADSCelery(unittest.TestCase):
                                    payload_html=payload_html)
 
             self.assertTrue(payload_plain in msg.get_payload()[0].get_payload())
-            self.assertTrue(payload_html in msg.get_payload()[1].get_payload())
+            self.assertTrue(payload_html in base64.b64decode(msg.get_payload()[1].get_payload()).decode('utf-8'))
             self.assertTrue(myADSTemplate.subject == msg.get('subject'))
 
     @httpretty.activate
@@ -600,19 +601,19 @@ class TestmyADSCelery(unittest.TestCase):
         formatted_payload = utils.payload_to_html(payload, col=1, email_address="test@tester.com")
 
         split_payload = formatted_payload.split('\n')
-        self.assertIn(u'templateColumnContainer"', split_payload[93])
-        self.assertEqual(split_payload[98].strip(),
+        self.assertIn(u'templateColumnContainer"', split_payload[80])
+        self.assertEqual(split_payload[82].strip(),
                           u'<h3><a href="https://ui.adsabs.harvard.edu/search/q=bibstem%3Aarxiv?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=queryurl" title="" style="text-decoration: none; color: #000000; font-weight: bold;">Query 1</a></h3>')
 
-        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=rank:1"', split_payload[134])
+        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=rank:1"', split_payload[102])
 
         formatted_payload = utils.payload_to_html(payload, col=2)
 
         split_payload = formatted_payload.split('\n')
-        self.assertIn(u'class="leftColumnContent"', split_payload[96])
-        self.assertEqual(split_payload[98].strip(),
+        self.assertIn(u'class="leftColumnContent"', split_payload[80])
+        self.assertEqual(split_payload[82].strip(),
                           u'<h3><a href="https://ui.adsabs.harvard.edu/search/q=bibstem%3Aarxiv?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=queryurl" title="" style="text-decoration: none; color: #000000; font-weight: bold;">Query 1</a></h3>')
-        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=rank:1"', split_payload[134])
+        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=rank:1"', split_payload[102])
 
         formatted_payload = utils.payload_to_html(payload, col=3)
         self.assertIsNone(formatted_payload)
