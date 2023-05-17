@@ -11,10 +11,9 @@ import argparse
 import logging
 import warnings
 import datetime
+import gzip
 import random
 import json
-import boto3
-import re
 try:
     from urllib.parse import quote_plus
 except ImportError:
@@ -109,16 +108,7 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
                            headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
         logger.info('Total number of arXiv bibcodes ingested: {}'.format(q.json()['response']['numFound']))
 
-        q = app.client.get('{0}?q={1}&fl=bibcode,title'.format(config.get('API_SOLR_QUERY_ENDPOINT'),
-                                              quote_plus('bibstem:arxiv arxiv_class:"astro-ph.*" entdate:["{0}Z00:00" TO NOW] '
-                                                         'pubdate:[{1}-00 TO *]'.format(start_date, beg_pubyear))),
-                           headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
-        logger.info('Total number of astro-ph bibcodes ingested: {}'.format(q.json()['response']['numFound']))
-
-        docs = q.json()["response"]["docs"]
-        astro_bibcodes = {d["bibcode"]: {"title": d["title"]} for d in docs}
-
-        return last_id, astro_bibcodes
+        return last_id
 
     logger.warning('arXiv ingest did not complete within the {0}s timeout limit. Exiting.'.format(sleep_timeout))
     if admin_email:
@@ -284,80 +274,8 @@ def _get_environment():
 
     return env
 
-def _audio_cleanup(input_text=None):
-    text_list = input_text.split('Bibcode')
-
-    text = text_list[0]
-    bibcode_out = text_list[1].rstrip('\n').strip()
-
-    text_list = text.split('<break time="0.5s"/>')
-
-    sub_text = text_list[-1]
-
-    sub_text = re.sub("\"", "&quot;", sub_text)
-    sub_text = re.sub("\'", "&apos", sub_text)
-    sub_text = re.sub("&", "&amp;", sub_text)
-    sub_text = re.sub("<", "&lt;", sub_text)
-    sub_text = re.sub(">", "&gt;", sub_text)
-
-    text_list[-1] = sub_text
-
-    text = '<break time="0.5s"/>'.join(text_list)
-
-    text = re.sub("arXiv", "archive", text)
-
-    return text, bibcode_out
-
-def create_audio(bib_dict=None):
-    audio_format = 'Title <break time="0.5s"/> %T <break time="1s"/> Author <break time="0.5s"/> %2.2O ' \
-                   '<break time="1s"/> Source <break time="0.5s"/> %J <break time="1s"/> Abstract ' \
-                   '<break time="0.5s"/> %B Bibcode %R'
-
-    bibcodes = bib_dict.keys()
-    response_export = app.client.post(config.get('API_EXPORT_CUSTOM'),
-                                      json={"bibcode": bibcodes, "format": audio_format},
-                                      headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
-
-    exported_text = json.loads(response_export.text)
-    exported_text = exported_text['export'].split('\n')
-
-    while "" in exported_text:
-        exported_text.remove("")
-
-    polly_client = boto3.Session(
-        aws_access_key_id=config.get('AWS_ID'),
-        aws_secret_access_key=config.get('AWS_KEY'),
-        region_name='us-east-1').client('polly')
-
-    audio_dict = {}
-    polly_voices = ['Joanna', 'Lupe', 'Matthew', 'Amy']
-    for line in exported_text:
-        text, bibcode = _audio_cleanup(line)
-
-        prepend = '<?xml version="1.0"?> <speak version="1.1" xmlns="http://www.w3.org/2001/10/synthesis" ' \
-                  'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' \
-                  'xsi:schemaLocation="http://www.w3.org/2001/10/synthesis ' \
-                  'http://www.w3.org/TR/speech-synthesis11/synthesis.xsd" xml:lang="en-US"> <amazon:domain name="news">'
-
-        append = ' </amazon:domain> </speak>'
-
-        full_line = prepend + text + append
-
-        response = polly_client.start_speech_synthesis_task(VoiceId=random.choice(polly_voices),
-                                                            OutputS3BucketName=config.get('AWS_BUCKET'),
-                                                            OutputS3KeyPrefix=bibcode,
-                                                            OutputFormat='mp3',
-                                                            Text=full_line,
-                                                            Engine='neural',
-                                                            TextType='ssml')
-
-        audio_dict[bibcode] = {"title": bib_dict["bibcode"]["title"],
-                               "file": response['SynthesisTask']['OutputUri']}
-
-    return audio_dict
-
 def process_myads(since=None, user_ids=None, user_emails=None, test_send_to=None, admin_email=None, force=False,
-                  frequency='daily', test_bibcode=None, audio_bib_dict=None):
+                  frequency='daily', test_bibcode=None, **kwargs):
     """
     Processes myADS mailings
 
@@ -370,8 +288,6 @@ def process_myads(since=None, user_ids=None, user_emails=None, test_send_to=None
     :param force: if True, will force processing of emails even if sent for a given user already that day
     :param frequency: basestring; 'daily' or 'weekly'
     :param test_bibcode: bibcode to query to test if Solr searcher has been updated
-    :param audio_bib_dict: dict of bibcodes for which audio files exist. Key is bibcode, value is dict
-    containing keys "title" (value: record title), "file" (value: audio file name)
     :return: no return
     """
     if user_ids:
@@ -395,8 +311,7 @@ def process_myads(since=None, user_ids=None, user_emails=None, test_send_to=None
                 continue
 
             tasks.task_process_myads({'userid': user_id, 'frequency': frequency, 'force': True,
-                                      'test_send_to': test_send_to, 'test_bibcode': test_bibcode,
-                                      'audio_files': audio_bib_dict})
+                                      'test_send_to': test_send_to, 'test_bibcode': test_bibcode})
 
         logger.info('Done (just the supplied user IDs)')
         return
@@ -544,7 +459,7 @@ if __name__ == '__main__':
         else:
             arxiv_complete = False
             try:
-                arxiv_complete, bib_title = _arxiv_ingest_complete(sleep_delay=300,
+                arxiv_complete = _arxiv_ingest_complete(sleep_delay=300,
                                                         sleep_timeout=config.get('SLEEP_TIMEOUT', 43200),
                                                         admin_email=args.admin_email)
             except Exception as e:
@@ -555,13 +470,9 @@ if __name__ == '__main__':
                 if args.wait_send:
                     logger.info('arxiv ingest: waiting {0} seconds for all SOLR searchers to sync data'.format(args.wait_send))
                     time.sleep(args.wait_send)
-
-                logger.info('arxiv ingest: creating audio files')
-                audio_dict = create_audio(bib_dict=bib_title)
-
                 logger.info('arxiv ingest: starting processing')
                 process_myads(args.since_date, args.user_ids, args.user_emails, args.test_send_to, args.admin_email, args.force,
-                              frequency='daily', test_bibcode=arxiv_complete, audio_bib_dict=audio_dict)
+                              frequency='daily', test_bibcode=arxiv_complete)
             else:
                 logger.warning('arXiv ingest: failed.')
                 sys.exit(1)
