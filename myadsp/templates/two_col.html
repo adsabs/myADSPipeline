@@ -2,48 +2,12 @@
 {% block payload %}
 <table border="0" cellpadding="0" cellspacing="0" width="100%" id="templateColumns" style="">
     <tr>
-        {% if left_payload[0].all_audio_files|length > 0 %}
-            <form method="post" action="https://dev.adsabs.harvard.edu/audio-player" class="inline">
-              <input
-                type="hidden"
-                name="sources"
-                value={{ left_payload[0].all_audio_files }}
-              />
-              <button
-                type="submit"
-                name="submit_param"
-                value="submit_value"
-                class="link-button"
-              >
-                Listen to all astro-ph
-              </button>
-            </form>
-        {% endif %}
-    </tr>
-    <tr>
         <td align="center" valign="top" width="50%" class="templateColumnContainer" style="border-right: 1px solid #dbdbdb;">
             <table border="0" cellpadding="10" cellspacing="0" width="100%">
                 <tr>
                     <td align="justify" valign="top" class="leftColumnContent">
                         {% for p in left_payload %}
                             <h3><a href="{{ p.query_url.format(p.qtype, p.id) }}" title="{{ p.query }}" style="text-decoration: none; color: #000000; font-weight: bold;">{{ p.name }}</a></h3>
-                            {% if p.audio_files|length > 0 %}
-                                <form method="post" action="https://dev.adsabs.harvard.edu/audio-player" class="inline">
-                                  <input
-                                    type="hidden"
-                                    name="sources"
-                                    value={{ p.audio_files }}
-                                  />
-                                  <button
-                                    type="submit"
-                                    name="submit_param"
-                                    value="submit_value"
-                                    class="link-button"
-                                  >
-                                    Listen to section
-                                  </button>
-                                </form>
-                            {% endif %}
                             {% if p.results|length > 0 %}
                                 <table border="0" cellpadding="0" cellspacing="0" width="100%">
                                 {% for r in p.results %}
@@ -94,23 +58,6 @@
                     <td align="justify" valign="top" class="rightColumnContent">
                         {% for p in right_payload %}
                             <h3><a href="{{ p.query_url.format(p.qtype, p.id) }}" title="{{ p.query }}" style="text-decoration: none; color: #000000; font-weight: bold;">{{ p.name }}</a></h3>
-                            {% if p.audio_files|length > 0 %}
-                                <form method="post" action="https://dev.adsabs.harvard.edu/audio-player" class="inline">
-                                  <input
-                                    type="hidden"
-                                    name="sources"
-                                    value={{ p.audio_files }}
-                                  />
-                                  <button
-                                    type="submit"
-                                    name="submit_param"
-                                    value="submit_value"
-                                    class="link-button"
-                                  >
-                                    Listen to section
-                                  </button>
-                                </form>
-                            {% endif %}
                             {% if p.results|length > 0 %}
                                 <table border="0" cellpadding="0" cellspacing="0" width="100%">
                                 {% for r in p.results %}
