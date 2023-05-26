@@ -371,6 +371,54 @@ def process_myads(since=None, user_ids=None, user_emails=None, test_send_to=None
     print('Done submitting {0} myADS processing tasks for {1} users.'.format(frequency, len(all_users)))
     logger.info('Done submitting {0} myADS processing tasks for {1} users.'.format(frequency, len(all_users)))
 
+def notifications_status_update(user_emails=None, active=False):
+    """
+    Enable/disable all notifications for a given user(s)
+
+    :param user_emails: list, users to enable/disable (given as email addresses)
+    :param active: boolean (default: False), set to True to enable all notifications for a given user, or False to disable
+    :return: dictionary; {'updated': [], 'failed': []}
+    """
+
+    updated = []
+    failed = []
+
+    user_ids = {}
+    for email in user_emails:
+        r = app.client.get(config.get('API_ADSWS_USER_EMAIL') % email,
+                           headers={'Accept': 'application/json',
+                                    'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))}
+                           )
+        if r.status_code == 200:
+            user_id = r.json()['id']
+        else:
+            failed.append(email)
+            logger.warning('Error getting user ID with email {0} from the API. Processing aborted for this user'.format(email))
+            continue
+
+        user_ids[user_id] = email
+
+    if user_ids:
+        for uid in user_ids.keys():
+            payload = {'active': active}
+            r = app.client.put(config.put('API_VAULT_MYADS_STATUS_UPDATE') % uid,
+                               headers={'Accept': 'application/json',
+                                        'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))},
+                               data=json.dumps(payload)
+                               )
+
+            if r.status_code == 200 or r.status_code == 204:
+                updated.append(user_ids[uid])
+            else:
+                failed.append(user_ids[uid])
+                logger.warning('Failed disabling notifications for user {0}. Processing aborted for this user'.format(user_ids[uid]))
+                continue
+    else:
+        return {}
+
+    logger.info('Disabled myADS notifications for the following users: %s', updated)
+    return {'updated': updated, 'failed': failed}
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process user input.')
@@ -407,6 +455,12 @@ if __name__ == '__main__':
                         dest='weekly_update',
                         action='store_true',
                         help='Process weekly myADS notifications')
+
+    parser.add_argument('-b',
+                        '--bounceback_disable',
+                        dest='bouceback_disable',
+                        action='store_true',
+                        help='Disable all notifications for users on the bounceback list')
 
     parser.add_argument('-t',
                         '--test_send_to',
@@ -502,3 +556,31 @@ if __name__ == '__main__':
             else:
                 logger.warning('astro ingest: failed.')
                 sys.exit(1)
+
+    if args.bounceback_disable:
+        bounceback_email_file = os.path.join(config.get('BOUNCEBACK_EMAIL_DIR'), 'myADS.bounces.emails')
+        bounceback_emails = []
+        try:
+            with open(bounceback_email_file, 'rt') as flist:
+                for l in flist.readlines():
+                    bounceback_emails.append(l)
+        except IOError:
+            logger.warning('Bounceback email file not found. Exiting.')
+            # exit with error
+            sys.exit(1)
+
+        if bounceback_emails:
+            disabled_dict = notifications_status_update(user_emails=bounceback_emails, active=False)
+            if len(disabled_dict['updated']) == 0 and len(disabled_dict['failed']) != 0:
+                logger.warning('Failed disabling bounceback emails; exiting.')
+            else:
+                # note: we're ignoring failed disabling from here on - there's a possibility that this email address is
+                # dead, so we can ignore. If it's not dead, then it'll just show back up in the bounceback file next time
+                # and we can try it again then
+                old_file = os.path.join(config.get('BOUNCEBACK_EMAIL_DIR'),
+                                        'myADS.bounces.emails' + '.' + get_date().strftime('%Y%m%d'))
+                os.rename(bounceback_email_file, old_file)
+        else:
+            logger.info('No bounceback emails to process; exiting.')
+            # exit without error
+            sys.exit(0)
