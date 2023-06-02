@@ -20,6 +20,7 @@ API_SOLR_QUERY_ENDPOINT = API_ENDPOINT + '/v1/search/query/'
 API_VAULT_MYADS_USERS = API_ENDPOINT + '/v1/vault/myads-users/%s'
 API_VAULT_MYADS_SETUP = API_ENDPOINT + '/v1/vault/get-myads/%s'
 API_VAULT_MYADS_SETUP_DATE = API_ENDPOINT + '/v1/vault/get-myads/%s/%s'
+API_VAULT_MYADS_STATUS_UPDATE = API_ENDPOINT + '/v1/vault/myads-status-update/%s'
 API_ADSWS_USER_EMAIL = API_ENDPOINT + '/v1/user/%s'
 
 ARXIV_URL = 'https://ui.adsabs.harvard.edu/link_gateway/{0}/EPRINT_HTML?utm_source=myads&utm_medium=email&utm_campaign=type:{1}&utm_term={2}&utm_content=rank:{3}'
@@ -51,6 +52,9 @@ ARXIV_INCOMING_ABS_DIR = '/proj/ads/abstracts/sources/ArXiv/log'
 # Directory for incoming astronomy articles
 ASTRO_INCOMING_DIR = '/proj/ads/abstracts/ast/index/current/'
 ASTRO_SAMPLE_SIZE = 3
+
+# Directory for email bouncebacks
+BOUNCEBACK_EMAIL_DIR = '/proj/ads/ads/procmail/'
 
 MAIL_DEFAULT_SENDER = 'ads@cfa.harvard.edu'
 MAIL_PASSWORD = None
