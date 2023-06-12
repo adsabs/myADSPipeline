@@ -458,7 +458,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-b',
                         '--bounceback_disable',
-                        dest='bouceback_disable',
+                        dest='bounceback_disable',
                         action='store_true',
                         help='Disable all notifications for users on the bounceback list')
 
