@@ -401,10 +401,10 @@ def notifications_status_update(user_emails=None, active=False):
     if user_ids:
         for uid in user_ids.keys():
             payload = {'active': active}
-            r = app.client.put(config.put('API_VAULT_MYADS_STATUS_UPDATE') % uid,
+            r = app.client.put(config.get('API_VAULT_MYADS_STATUS_UPDATE') % uid,
                                headers={'Accept': 'application/json',
                                         'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))},
-                               data=json.dumps(payload)
+                               json=payload
                                )
 
             if r.status_code == 200 or r.status_code == 204:
@@ -563,7 +563,7 @@ if __name__ == '__main__':
         try:
             with open(bounceback_email_file, 'rt') as flist:
                 for l in flist.readlines():
-                    bounceback_emails.append(l)
+                    bounceback_emails.append(l.strip())
         except IOError:
             logger.warning('Bounceback email file not found. Exiting.')
             # exit with error
