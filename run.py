@@ -442,7 +442,7 @@ if __name__ == '__main__':
                         dest='user_emails',
                         action='store',
                         default=None,
-                        help='Comma delimited list of user emails to run myADS notifications for')
+                        help='Comma delimited list of user emails to process')
 
     parser.add_argument('-d',
                         '--daily',
@@ -558,16 +558,19 @@ if __name__ == '__main__':
                 sys.exit(1)
 
     if args.bounceback_disable:
-        bounceback_email_file = os.path.join(config.get('BOUNCEBACK_EMAIL_DIR'), 'myADS.bounces.emails')
-        bounceback_emails = []
-        try:
-            with open(bounceback_email_file, 'rt') as flist:
-                for l in flist.readlines():
-                    bounceback_emails.append(l.strip())
-        except IOError:
-            logger.warning('Bounceback email file not found. Exiting.')
-            # exit with error
-            sys.exit(1)
+        if args.user_emails:
+            bounceback_emails = args.user_emails
+        else:
+            bounceback_email_file = os.path.join(config.get('BOUNCEBACK_EMAIL_DIR'), 'myADS.bounces.emails')
+            bounceback_emails = []
+            try:
+                with open(bounceback_email_file, 'rt') as flist:
+                    for l in flist.readlines():
+                        bounceback_emails.append(l.strip())
+            except IOError:
+                logger.warning('Bounceback email file not found. Exiting.')
+                # exit with error
+                sys.exit(1)
 
         if bounceback_emails:
             disabled_dict = notifications_status_update(user_emails=bounceback_emails, active=False)
@@ -577,9 +580,10 @@ if __name__ == '__main__':
                 # note: we're ignoring failed disabling from here on - there's a possibility that this email address is
                 # dead, so we can ignore. If it's not dead, then it'll just show back up in the bounceback file next time
                 # and we can try it again then
-                old_file = os.path.join(config.get('BOUNCEBACK_EMAIL_DIR'),
-                                        'myADS.bounces.emails' + '.' + get_date().strftime('%Y%m%d'))
-                os.rename(bounceback_email_file, old_file)
+                if not args.user_emails:
+                    old_file = os.path.join(config.get('BOUNCEBACK_EMAIL_DIR'),
+                                            'myADS.bounces.emails' + '.' + get_date().strftime('%Y%m%d'))
+                    os.rename(bounceback_email_file, old_file)
         else:
             logger.info('No bounceback emails to process; exiting.')
             # exit without error
