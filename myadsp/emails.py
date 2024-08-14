@@ -17,7 +17,7 @@ class myADSTemplate(Email):
     """
 
     msg_plain = """
-        SAO/NASA ADS: myADS Personal Notification Service Results
+        SAO ADS/SciX: myADS Personal Notification Service Results
     
         {payload}
         """
