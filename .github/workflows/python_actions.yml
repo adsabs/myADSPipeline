@@ -53,9 +53,6 @@ jobs:
         name: coverage-myads
         path: .coverage
 
-    - name: Check coverage file
-      run: ls -la .coverage
-
   coveralls:
 
     needs: build
