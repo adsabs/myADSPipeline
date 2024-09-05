@@ -48,7 +48,7 @@ jobs:
       run: |
         py.test
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v2
       with:
         name: coverage-myads
         path: .coverage
@@ -72,7 +72,7 @@ jobs:
         python -m pip install --upgrade wheel setuptools pip
         pip install coverage==5.2.1
         pip install coveralls==2.2.0
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v2
       with:
         name: coverage-myads
 
