@@ -513,7 +513,8 @@ if __name__ == '__main__':
         else:
             arxiv_complete = False
             try:
-                arxiv_complete = _arxiv_ingest_complete(sleep_delay=300,
+                arxiv_complete = _arxiv_ingest_complete(date=args.since_date,
+                                                        sleep_delay=300,
                                                         sleep_timeout=config.get('SLEEP_TIMEOUT', 43200),
                                                         admin_email=args.admin_email)
             except Exception as e:
