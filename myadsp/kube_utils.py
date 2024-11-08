@@ -39,9 +39,9 @@ def exec_commands(api_instance, name, namespace, identifier, logger):
 
 
 def check_solr_update_status(ads_config, identifier):
-    logger = setup_logging('kube_util.py', proj_home=config.get('PROJ_HOME','..'),
-                        level=config.get('LOGGING_LEVEL', 'INFO'),
-                        attach_stdout=config.get('LOG_STDOUT', False))
+    logger = setup_logging('kube_util.py', proj_home=ads_config.get('PROJ_HOME','..'),
+                        level=ads_config.get('LOGGING_LEVEL', 'INFO'),
+                        attach_stdout=ads_config.get('LOG_STDOUT', False))
     namespace=ads_config.get("KUBE_ENV", "solr-dev")  
     config.load_kube_config(config_file=ads_config.get("KUBE_CONFIG"))
     try:
