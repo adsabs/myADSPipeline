@@ -75,15 +75,6 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
     while total_delay < sleep_timeout:
         total_delay += sleep_delay
         r = kube_utils.check_solr_update_status(config, last_id)
-        #r = app.client.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(config.get('API_SOLR_QUERY_ENDPOINT'), last_id),
-        #                   headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
-        #if r.status_code != 200:
-        #    time.sleep(sleep_delay)
-        #    logger.error('Error retrieving record for {0} from Solr ({1} {2}), retrying'.
-        #                 format(last_id, r.status_code, r.text))
-        #    continue
-
-        #numfound = r.json()['response']['numFound']
         if not r:
             # nothing found, try again after a sleep
             time.sleep(sleep_delay)
@@ -91,11 +82,7 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
                         .format(last_id, sleep_delay, total_delay))
             continue
         else:
-            # returning this as true for now, since technically something was found
-            logger.error('Too many records returned for id {0}'.format(last_id))
-
-        logger.info('Numfound: {0} for test id {1}. Response: {2}. URL: {3}'.format(numfound, last_id,
-                                                                                    json.dumps(r.json()), r.url))
+            logger.info('Found records in all searchers for {}'.format(last_id))
 
         # check number of bibcodes from ingest
         if get_date().weekday() == 0:
