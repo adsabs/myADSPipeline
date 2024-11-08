@@ -77,9 +77,9 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
         r = kube_utils.check_solr_update_status(config, last_id)
         if not r:
             # nothing found, try again after a sleep
-            time.sleep(sleep_delay)
             logger.info('arXiv ingest not complete (test arXiv id: {0}). Sleeping {1}s, for a total delay of {2}s.'
                         .format(last_id, sleep_delay, total_delay))
+            time.sleep(sleep_delay)
             continue
         else:
             logger.info('Found records in all searchers for {}'.format(last_id))

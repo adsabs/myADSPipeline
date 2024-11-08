@@ -27,7 +27,7 @@ def exec_commands(api_instance, name, namespace, identifier, logger):
                   stderr=True, stdin=False,
                   stdout=True, tty=False)
         test=json.loads(''.join(resp.split('\n')[:-1]))
-        if test['response']['numFound'] >= 0:
+        if test['response']['numFound'] > 0:
             logger.info("pod: {} has record: {}".format(name, identifier) )
             logger.info("Response: {} from pod: {}".format(json.dumps(test), identifier))
             if test['response']['numFound'] > 1: 
