@@ -27,9 +27,9 @@ def exec_commands(api_instance, name, namespace, identifier, logger):
                   stderr=True, stdin=False,
                   stdout=True, tty=False)
         test=json.loads(''.join(resp.split('\n')[:-1]))
-        if test['response']['numFound'] == 0:
+        if test['response']['numFound'] >= 0:
             logger.info("pod: {} has record: {}".format(name, identifier) )
-            return 
+            return 1
         else:
             logger.info("pod: {} does not have record: {}".format(name, identifier) )
             return 0
@@ -38,12 +38,12 @@ def exec_commands(api_instance, name, namespace, identifier, logger):
         return 0
 
 
-def check_solr_update_status(ads_config, identifier, logger):
-    logger = setup_logging('kube_util.py', config.get('PROJ_HOME','..'),
+def check_solr_update_status(ads_config, identifier):
+    logger = setup_logging('kube_util.py', proj_home=config.get('PROJ_HOME','..'),
                         level=config.get('LOGGING_LEVEL', 'INFO'),
                         attach_stdout=config.get('LOG_STDOUT', False))
     namespace=ads_config.get("KUBE_ENV", "solr-dev")  
-    config.load_kube_config(config_file=ads_config.get("KUBE_CONFIG","/app/bin/kubectl/config"))
+    config.load_kube_config(config_file=ads_config.get("KUBE_CONFIG"))
     try:
         c = Configuration().get_default_copy()
     except AttributeError:
@@ -57,11 +57,11 @@ def check_solr_update_status(ads_config, identifier, logger):
     num_total = 0
     for pod in pod_list.items:
         if "solr-searcher" in pod.metadata.name: 
-            num_updated +=exec_commands(core_v1, pod.metadata.name, namespace, identifier)
+            num_updated +=exec_commands(core_v1, pod.metadata.name, namespace, identifier, logger)
             num_total +=1
     
     logger.info(f"{num_updated}/{num_total} searchers updated")
-    if num_updated/num_total >=1:
+    if num_updated/num_total == 1:
         return True
     else: 
         return False
