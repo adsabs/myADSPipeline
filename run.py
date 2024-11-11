@@ -82,7 +82,7 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
             time.sleep(sleep_delay)
             continue
         else:
-            logger.info('Found records in all searchers for {}'.format(last_id))
+            logger.info('Found record in all searchers for {}'.format(last_id))
 
         # check number of bibcodes from ingest
         if get_date().weekday() == 0:
@@ -91,9 +91,9 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
             start_date = (get_date() - datetime.timedelta(days=1)).date()
         beg_pubyear = (get_date() - datetime.timedelta(days=180)).year
         q = app.client.get('{0}?q={1}'.format(config.get('API_SOLR_QUERY_ENDPOINT'),
-                                              quote_plus('bibstem:arxiv entdate:["{0}Z00:00" TO NOW] '
-                                                         'pubdate:[{1}-00 TO *]'.format(start_date, beg_pubyear))),
-                           headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
+                                            quote_plus('bibstem:arxiv entdate:["{0}Z00:00" TO NOW] '
+                                                        'pubdate:[{1}-00 TO *]'.format(start_date, beg_pubyear))),
+                        headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
         logger.info('Total number of arXiv bibcodes ingested: {}'.format(q.json()['response']['numFound']))
 
         return last_id
