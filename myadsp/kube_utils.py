@@ -20,7 +20,6 @@ def exec_commands(api_instance, name, namespace, identifier, logger):
     # Calling exec and waiting for response
     exec_command = ["/bin/bash", "-c", "curl -w 'formatted string' --silent --url 'http://localhost:9983/solr/collection1/select?fl=identifier&q=identifier%3A{}&wt=json'".format(identifier)] #[
     try:
-        import pudb; pudb.set_trace()
         resp = stream(api_instance.connect_get_namespaced_pod_exec,
                   name,
                   namespace,
