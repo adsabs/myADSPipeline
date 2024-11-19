@@ -14,12 +14,13 @@ def exec_commands(api_instance, name, namespace, identifier, logger):
     except ApiException as e:
         if e.status != 404:
             logger.error(f"Unknown error: {e}")
-            exit(1)
+            raise(e)
 
 
     # Calling exec and waiting for response
     exec_command = ["/bin/bash", "-c", "curl -w 'formatted string' --silent --url 'http://localhost:9983/solr/collection1/select?fl=identifier&q=identifier%3A{}&wt=json'".format(identifier)] #[
     try:
+        import pudb; pudb.set_trace()
         resp = stream(api_instance.connect_get_namespaced_pod_exec,
                   name,
                   namespace,
@@ -27,7 +28,7 @@ def exec_commands(api_instance, name, namespace, identifier, logger):
                   stderr=True, stdin=False,
                   stdout=True, tty=False)
         test=json.loads(''.join(resp.split('\n')[:-1]))
-        if test['response']['numFound'] > 0:
+        if test['response']['numFound'] >= 0:
             logger.info("pod: {} has record: {}".format(name, identifier) )
             logger.info("Response: {} from pod: {}".format(json.dumps(test), identifier))
             if test['response']['numFound'] > 1: 
