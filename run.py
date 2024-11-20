@@ -200,18 +200,9 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
         num_sampled = 0
         for s in sample:
             num_sampled += 1
-            r = app.client.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(config.get('API_SOLR_QUERY_ENDPOINT'), s),
-                               headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
-            # if there's a solr error, sleep then move to the next bibcode
-            if r.status_code != 200:
-                time.sleep(sleep_delay)
-                total_delay += sleep_delay
-                logger.error('Error retrieving bibcode {0} from Solr ({1} {2}), sleeping {3}s, for a total delay of {4}s'.
-                             format(s, r.status_code, r.text, sleep_delay, total_delay))
-                continue
+            r = kube_utils.check_solr_update_status(config, s)
 
-            numfound = r.json()['response']['numFound']
-            if numfound == 0:
+            if not r:
                 # nothing found - if all bibcodes in the sample were tried, sleep then start the while loop again
                 if num_sampled == config.get('ASTRO_SAMPLE_SIZE'):
                     time.sleep(sleep_delay)
@@ -224,13 +215,8 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
                         'Astronomy ingest not complete (test astro bibcode: {0}). Trying the next in the sample.'
                         .format(s))
                 continue
-            elif numfound > 1:
-                # returning this as true for now, since technically something was found
-                logger.error('Too many records returned for bibcode {0}'.format(s))
-
-            logger.info('Numfound: {0} for test bibcode {1}. Response: {2}. URL: {3}'.format(numfound, s,
-                                                                                             json.dumps(r.json()),
-                                                                                             r.url))
+            
+            logger.info('Test bibcode {} Exists in all searchers.'.format(s))
             return s
 
     logger.warning('Astronomy ingest did not complete within the {0}s timeout limit. Exiting.'.format(sleep_timeout))

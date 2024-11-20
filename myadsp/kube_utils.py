@@ -25,20 +25,20 @@ def exec_commands(api_instance, name, namespace, identifier, logger):
                   namespace,
                   command=exec_command,
                   stderr=True, stdin=False,
-                  stdout=True, tty=False)
+                  stdout=True, tty=False)      
         test=json.loads(''.join(resp.split('\n')[:-1]))
-        if test['response']['numFound'] >= 0:
+        if test['response']['numFound'] > 0:
             logger.info("pod: {} has record: {}".format(name, identifier) )
             logger.info("Response: {} from pod: {}".format(json.dumps(test), identifier))
             if test['response']['numFound'] > 1: 
                 logger.error("pod: {} returned more than one record for identifier:{}".format(name, identifier) )
-            return 1
+            return 1.
         else:
             logger.info("pod: {} does not have record: {}".format(name, identifier) )
-            return 0
+            return 0.
     except:
         logger.info("Failed to get response from solr pod")
-        return 0
+        return 0.
 
 
 def check_solr_update_status(ads_config, identifier):
@@ -56,8 +56,8 @@ def check_solr_update_status(ads_config, identifier):
     core_v1 = core_v1_api.CoreV1Api()
 
     pod_list = core_v1.list_namespaced_pod(namespace)
-    num_updated = 0
-    num_total = 0
+    num_updated = 0.
+    num_total = 0.
     for pod in pod_list.items:
         if "solr-searcher" in pod.metadata.name: 
             num_updated +=exec_commands(core_v1, pod.metadata.name, namespace, identifier, logger)
