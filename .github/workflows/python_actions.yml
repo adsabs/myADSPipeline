@@ -50,6 +50,7 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
+        include-hidden-files: true
         name: coverage-myads
         path: .coverage
 
@@ -70,7 +71,7 @@ jobs:
         python -m pip install --upgrade wheel setuptools pip
         pip install coverage==5.2.1
         pip install coveralls==2.2.0
-    - uses: actions/download-artifact@master
+    - uses: actions/download-artifact@v4
       with:
         name: coverage-myads
 

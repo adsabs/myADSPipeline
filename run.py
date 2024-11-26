@@ -1,7 +1,7 @@
 from __future__ import print_function
 from past.builtins import basestring
 from adsputils import setup_logging, get_date, load_config
-from myadsp import tasks, utils
+from myadsp import tasks, utils, kube_utils
 from myadsp.models import KeyValue
 
 import sys
@@ -74,27 +74,15 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
     total_delay = 0
     while total_delay < sleep_timeout:
         total_delay += sleep_delay
-        r = app.client.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(config.get('API_SOLR_QUERY_ENDPOINT'), last_id),
-                           headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
-        if r.status_code != 200:
-            time.sleep(sleep_delay)
-            logger.error('Error retrieving record for {0} from Solr ({1} {2}), retrying'.
-                         format(last_id, r.status_code, r.text))
-            continue
-
-        numfound = r.json()['response']['numFound']
-        if numfound == 0:
+        r = kube_utils.check_solr_update_status(config, last_id)
+        if not r:
             # nothing found, try again after a sleep
-            time.sleep(sleep_delay)
             logger.info('arXiv ingest not complete (test arXiv id: {0}). Sleeping {1}s, for a total delay of {2}s.'
                         .format(last_id, sleep_delay, total_delay))
+            time.sleep(sleep_delay)
             continue
-        if numfound > 1:
-            # returning this as true for now, since technically something was found
-            logger.error('Too many records returned for id {0}'.format(last_id))
-
-        logger.info('Numfound: {0} for test id {1}. Response: {2}. URL: {3}'.format(numfound, last_id,
-                                                                                    json.dumps(r.json()), r.url))
+        else:
+            logger.info('Found record in all searchers for {}'.format(last_id))
 
         # check number of bibcodes from ingest
         if get_date().weekday() == 0:
@@ -103,9 +91,9 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
             start_date = (get_date() - datetime.timedelta(days=1)).date()
         beg_pubyear = (get_date() - datetime.timedelta(days=180)).year
         q = app.client.get('{0}?q={1}'.format(config.get('API_SOLR_QUERY_ENDPOINT'),
-                                              quote_plus('bibstem:arxiv entdate:["{0}Z00:00" TO NOW] '
-                                                         'pubdate:[{1}-00 TO *]'.format(start_date, beg_pubyear))),
-                           headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
+                                            quote_plus('bibstem:arxiv entdate:["{0}Z00:00" TO NOW] '
+                                                        'pubdate:[{1}-00 TO *]'.format(start_date, beg_pubyear))),
+                        headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
         logger.info('Total number of arXiv bibcodes ingested: {}'.format(q.json()['response']['numFound']))
 
         return last_id
@@ -212,18 +200,9 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
         num_sampled = 0
         for s in sample:
             num_sampled += 1
-            r = app.client.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(config.get('API_SOLR_QUERY_ENDPOINT'), s),
-                               headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
-            # if there's a solr error, sleep then move to the next bibcode
-            if r.status_code != 200:
-                time.sleep(sleep_delay)
-                total_delay += sleep_delay
-                logger.error('Error retrieving bibcode {0} from Solr ({1} {2}), sleeping {3}s, for a total delay of {4}s'.
-                             format(s, r.status_code, r.text, sleep_delay, total_delay))
-                continue
+            r = kube_utils.check_solr_update_status(config, s)
 
-            numfound = r.json()['response']['numFound']
-            if numfound == 0:
+            if not r:
                 # nothing found - if all bibcodes in the sample were tried, sleep then start the while loop again
                 if num_sampled == config.get('ASTRO_SAMPLE_SIZE'):
                     time.sleep(sleep_delay)
@@ -236,13 +215,8 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_
                         'Astronomy ingest not complete (test astro bibcode: {0}). Trying the next in the sample.'
                         .format(s))
                 continue
-            elif numfound > 1:
-                # returning this as true for now, since technically something was found
-                logger.error('Too many records returned for bibcode {0}'.format(s))
-
-            logger.info('Numfound: {0} for test bibcode {1}. Response: {2}. URL: {3}'.format(numfound, s,
-                                                                                             json.dumps(r.json()),
-                                                                                             r.url))
+            
+            logger.info('Test bibcode {} Exists in all searchers.'.format(s))
             return s
 
     logger.warning('Astronomy ingest did not complete within the {0}s timeout limit. Exiting.'.format(sleep_timeout))

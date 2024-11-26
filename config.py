@@ -61,3 +61,6 @@ MAIL_PASSWORD = None
 MAIL_PORT = 25
 MAIL_SERVER = None
 MAIL_USERNAME = None
+
+KUBE_ENV = "dev"
+KUBE_CONFIG = "/path/to/config"
