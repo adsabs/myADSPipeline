@@ -4,3 +4,4 @@ psycopg2==2.8.3
 Jinja2==2.11.2
 portalocker==1.7.1
 markupsafe<=2.0.1
+kubernetes==31.0.0

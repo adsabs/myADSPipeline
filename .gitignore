@@ -17,3 +17,4 @@ venv
 python
 .cache
 **/.DS_Store
+.venv
