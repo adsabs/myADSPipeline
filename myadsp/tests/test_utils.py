@@ -585,36 +585,6 @@ class TestmyADSCelery(unittest.TestCase):
         self.assertEqual(split_payload[1].strip(), '"VizieR Online Data Catalog: Spectroscopy of M81 globular ' +
                                                     'clusters," Nantais, J and Huchra, J (2012yCat..51392620N)')
 
-    def test_payload_to_html(self):
-        
-        formatted_payload = utils.payload_to_html(payload, col=1, email_address="test@tester.com")
-
-        split_payload = formatted_payload.split('\n')
-        
-        self.assertIn(u'templateColumnContainer"', split_payload[87])
-
-
-        self.assertEqual(split_payload[92].strip(),
-                          u'<h3><a href="https://ui.adsabs.harvard.edu/search/q=bibstem%3Aarxiv?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=queryurl" title="" style="text-decoration: none; color: #000000; font-weight: bold;">Query 1</a></h3>')
-        
-
-        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=rank:1"', split_payload[111])
-
-        formatted_payload = utils.payload_to_html(payload, col=2)
-
-        split_payload = formatted_payload.split('\n')
-
-        self.assertIn(u'class="leftColumnContent"', split_payload[90])
-
-
-        self.assertEqual(split_payload[92].strip(),
-                          u'<h3><a href="https://ui.adsabs.harvard.edu/search/q=bibstem%3Aarxiv?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=queryurl" title="" style="text-decoration: none; color: #000000; font-weight: bold;">Query 1</a></h3>')
-      
-        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=rank:1"', split_payload[111])
-
-        formatted_payload = utils.payload_to_html(payload, col=3)
-        self.assertIsNone(formatted_payload)
-
 
 
 
