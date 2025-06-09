@@ -11,7 +11,8 @@ CELERY_BROKER = 'pyamqp://'
 API_TOKEN = 'fix me'
 
 UI_ENDPOINT = 'https://ui.adsabs.harvard.edu'
-ABSTRACT_UI_ENDPOINT = UI_ENDPOINT + '/abs/{0}/abstract?utm_source=myads&utm_medium=email&utm_campaign=type:{1}&utm_term={2}&utm_content=rank:{3}'
+SCIX_UI_ENDPOINT = 'https://scixplorer.org'
+ABSTRACT_UI_ENDPOINT = '/abs/{0}/abstract?utm_source=myads&utm_medium=email&utm_campaign=type:{1}&utm_term={2}&utm_content=rank:{3}'
 BIGQUERY_ENDPOINT = UI_ENDPOINT + '/search/q=docs(%s)'
 QUERY_ENDPOINT = UI_ENDPOINT + '/search/%s'
 
@@ -23,7 +24,7 @@ API_VAULT_MYADS_SETUP_DATE = API_ENDPOINT + '/v1/vault/get-myads/%s/%s'
 API_VAULT_MYADS_STATUS_UPDATE = API_ENDPOINT + '/v1/vault/myads-status-update/%s'
 API_ADSWS_USER_EMAIL = API_ENDPOINT + '/v1/user/%s'
 
-ARXIV_URL = 'https://ui.adsabs.harvard.edu/link_gateway/{0}/EPRINT_HTML?utm_source=myads&utm_medium=email&utm_campaign=type:{1}&utm_term={2}&utm_content=rank:{3}'
+ARXIV_URL = '/link_gateway/{0}/EPRINT_HTML?utm_source=myads&utm_medium=email&utm_campaign=type:{1}&utm_term={2}&utm_content=rank:{3}'
 
 # For stateful results, number of days after which we will consider a result stale and no longer show it
 STATEFUL_RESULTS_DAYS = 7
@@ -61,6 +62,3 @@ MAIL_PASSWORD = None
 MAIL_PORT = 25
 MAIL_SERVER = None
 MAIL_USERNAME = None
-
-KUBE_ENV = "dev"
-KUBE_CONFIG = "/path/to/config"
