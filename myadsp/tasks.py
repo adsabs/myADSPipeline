@@ -130,6 +130,7 @@ def task_process_myads(message):
 
     # then execute each qid /vault/execute-query/qid
     setup = r.json()
+    scix_ui = setup[0].get('scix_ui', False)
     payload = []
     has_results = 0
     for s in setup:
@@ -151,7 +152,7 @@ def task_process_myads(message):
                 continue
 
             try:
-                raw_results = utils.get_template_query_results(s)
+                raw_results = utils.get_template_query_results(s, scix_ui)
             except RuntimeError:
                 if message.get('query_retries', None):
                     retries = message['query_retries']
@@ -220,9 +221,9 @@ def task_process_myads(message):
 
     payload_plain = utils.payload_to_plain(payload)
     if len(payload) < app.conf.get('NUM_QUERIES_TWO_COL', 3):
-        payload_html = utils.payload_to_html(payload, col=1, frequency=message['frequency'], email_address=email)
+        payload_html = utils.payload_to_html(payload, col=1, frequency=message['frequency'], email_address=email, scix_ui=scix_ui)
     else:
-        payload_html = utils.payload_to_html(payload, col=2, frequency=message['frequency'], email_address=email)
+        payload_html = utils.payload_to_html(payload, col=2, frequency=message['frequency'], email_address=email, scix_ui=scix_ui)
     msg = utils.send_email(email_addr=email,
                            email_template=myADSTemplate,
                            payload_plain=payload_plain,

@@ -114,7 +114,7 @@ def get_user_email(userid=None):
         return None
 
 
-def get_template_query_results(myADSsetup):
+def get_template_query_results(myADSsetup, scix_ui=False):
     """
     Retrieves results for a templated query
     :param myADSsetup: dict containing query terms, params, and metadata
@@ -189,8 +189,9 @@ def get_template_query_results(myADSsetup):
                 cites_r = app.client.get(cites_query,
                                          headers={'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
                 name[i] = name[i] % int(cites_r.json()['stats']['stats_fields']['citation_count']['sum'])
-
-        query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', config.get('UI_ENDPOINT') + '/search/') \
+        
+        ui_endpoint = config.get('SCIX_UI_ENDPOINT') if scix_ui else config.get('UI_ENDPOINT')
+        query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', ui_endpoint + '/search/') \
                     + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         payload.append({'name': name[i], 'query_url': query_url, 'query': myADSsetup['query'][i]['q'], 'results': docs})
 
@@ -266,26 +267,36 @@ env.globals['_get_first_author_formatted'] = _get_first_author_formatted
 env.globals['_get_title'] = _get_title
 
 
-def payload_to_html(payload=None, col=1, frequency='daily', email_address=None):
+def payload_to_html(payload=None, col=1, frequency='daily', email_address=None, scix_ui=False):
     """
     Converts the myADS results into the HTML formatted message payload
     :param payload: list of dicts
     :param col: number of columns to display in formatted email (1 or 2)
     :param frequency: 'daily' or 'weekly' notification
     :param email_address: email address of user, for footer
+    :param scix_ui: bool, if True use SCIX endpoints
     :return: HTML formatted payload
     """
 
     date_formatted = get_date().strftime("%B %d, %Y")
 
+    if scix_ui:
+        abs_url = config.get('SCIX_UI_ENDPOINT') 
+        arxiv_url = config.get('SCIX_UI_ENDPOINT') 
+    else:
+        abs_url = config.get('UI_ENDPOINT')
+        arxiv_url = config.get('UI_ENDPOINT')
+
+    abs_url += config.get('ABSTRACT_UI_ENDPOINT')
+    arxiv_url += config.get('ARXIV_URL')
     if col == 1:
         template = env.get_template('one_col.html')
         return template.render(frequency=frequency,
                                date=date_formatted,
                                payload=payload,
-                               abs_url=config.get('ABSTRACT_UI_ENDPOINT'),
+                               abs_url=abs_url,
                                email_address=email_address,
-                               arxiv_url=config.get('ARXIV_URL'))
+                               arxiv_url=arxiv_url)
 
     elif col == 2:
         left_col = payload[:len(payload) // 2]
@@ -295,9 +306,9 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None):
                                date=date_formatted,
                                left_payload=left_col,
                                right_payload=right_col,
-                               abs_url=config.get('ABSTRACT_UI_ENDPOINT'),
+                               abs_url=abs_url,
                                email_address=email_address,
-                               arxiv_url=config.get('ARXIV_URL'))
+                               arxiv_url=arxiv_url)
 
     else:
         logger.warning('Incorrect number of columns (col={0}) passed for payload {1}. No formatting done'.

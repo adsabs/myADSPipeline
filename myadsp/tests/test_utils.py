@@ -587,9 +587,167 @@ class TestmyADSCelery(unittest.TestCase):
 
 
 
+    @httpretty.activate
+    def test_get_template_query_results_scix_ui(self):
+        start = (adsputils.get_date() - datetime.timedelta(days=25)).date()
+        end = adsputils.get_date().date()
+        start_year = (adsputils.get_date() - datetime.timedelta(days=180)).year
+
+        myADSsetup = {'name': 'Test Query - authors',
+                      'qid': 1,
+                      'active': True,
+                      'stateful': True,
+                      'frequency': 'weekly',
+                      'type': 'template',
+                      'template': 'authors',
+                      'data': 'author:Kurtz',
+                      'query': [{'q': 'author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.
+                                      format(start, end, start_year),
+                                 'sort': 'score desc, bibcode desc'}],
+                      'fields': 'bibcode,title,author_norm,identifier',
+                      'rows': 5}
+
+        httpretty.register_uri(
+            httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
+                format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
+                       query=quote_plus(
+                           'author:Kurtz'),
+                       sort=quote_plus('score desc, bibcode desc'),
+                       fields='bibcode,title,author_norm,identifier',
+                       rows=5),
+            content_type='application/json',
+            status=200,
+            body=json.dumps({"responseHeader": {"status": 0,
+                                                "QTime": 23,
+                                                "params": {
+                                                    "q": 'author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] '
+                                                         'pubdate:[{2}-00 TO *]'.format(start, end, start_year),
+                                                    "fl": "bibcode,title,author_norm,identifier,year,bibstem",
+                                                    "start": "0",
+                                                    "sort": "score desc, bibcode desc",
+                                                    "rows": "5",
+                                                    "wt": "json"}},
+                             "response": {"numFound": 1,
+                                          "start": 0,
+                                          "docs": [{"bibcode": "1971JVST....8..324K",
+                                                    "title": [
+                                                        "High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                    "author_norm": ["Kurtz, J"],
+                                                    "identifier": ["1971JVST....8..324K"],
+                                                    "year": "1971",
+                                                    "bibstem": ["JVST"]}]}})
+        )
+
+        results = utils.get_template_query_results(myADSsetup, scix_ui=True)
+        self.assertEqual(len(results), 1)
+        self.assertIn('https://scixplorer.org/search/', results[0]['query_url'])
 
 
+    @httpretty.activate
+    def test_get_template_query_results_scix_ui_is_false(self):
+        start = (adsputils.get_date() - datetime.timedelta(days=25)).date()
+        end = adsputils.get_date().date()
+        start_year = (adsputils.get_date() - datetime.timedelta(days=180)).year
 
+        myADSsetup = {'name': 'Test Query - authors',
+                      'qid': 1,
+                      'active': True,
+                      'stateful': True,
+                      'frequency': 'weekly',
+                      'type': 'template',
+                      'template': 'authors',
+                      'data': 'author:Kurtz',
+                      'query': [{'q': 'author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.
+                                      format(start, end, start_year),
+                                 'sort': 'score desc, bibcode desc'}],
+                      'fields': 'bibcode,title,author_norm,identifier',
+                      'rows': 5}
+
+        httpretty.register_uri(
+            httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
+                format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
+                       query=quote_plus(
+                           'author:Kurtz'),
+                       sort=quote_plus('score desc, bibcode desc'),
+                       fields='bibcode,title,author_norm,identifier',
+                       rows=5),
+            content_type='application/json',
+            status=200,
+            body=json.dumps({"responseHeader": {"status": 0,
+                                                "QTime": 23,
+                                                "params": {
+                                                    "q": 'author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] '
+                                                         'pubdate:[{2}-00 TO *]'.format(start, end, start_year),
+                                                    "fl": "bibcode,title,author_norm,identifier,year,bibstem",
+                                                    "start": "0",
+                                                    "sort": "score desc, bibcode desc",
+                                                    "rows": "5",
+                                                    "wt": "json"}},
+                             "response": {"numFound": 1,
+                                          "start": 0,
+                                          "docs": [{"bibcode": "1971JVST....8..324K",
+                                                    "title": [
+                                                        "High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                    "author_norm": ["Kurtz, J"],
+                                                    "identifier": ["1971JVST....8..324K"],
+                                                    "year": "1971",
+                                                    "bibstem": ["JVST"]}]}})
+        )
+
+        results = utils.get_template_query_results(myADSsetup)
+        self.assertEqual(len(results), 1)
+        self.assertNotIn('https://scixplorer.org/search/', results[0]['query_url'])
+        self.assertIn('https://ui.adsabs.harvard.edu/search/', results[0]['query_url'])
+        
+
+    def test_payload_to_html_scix_ui_true(self):
+        """Test that scix_ui=True uses SCIX endpoints in HTML payload"""
+        test_payload = [{
+            'name': 'Test Query',
+            'query_url': 'https://scixplorer.org/search/test',
+            'results': [
+                {'bibcode': '2023test', 'title': ['Test Title'], 'author_norm': ['Smith, J'], 'bibstem': ['ApJ']},
+                {'bibcode': '2023arXiv.test', 'title': ['arXiv Test Title'], 'author_norm': ['Jones, A'], 'bibstem': ['arXiv'], 'arxiv_id': 'arXiv:2023.test'}
+            ],
+            'qtype': 'general',
+            'id': 1
+        }]
+        
+        html = utils.payload_to_html(test_payload, col=1, frequency='daily', 
+                                    email_address='test@example.com', scix_ui=True)
+        
+        expected_abs_url = self.app._config.get('SCIX_UI_ENDPOINT') + self.app._config.get('ABSTRACT_UI_ENDPOINT')
+        expected_abs_url_encoded = expected_abs_url.format('2023test', 'general', 1, 1).replace('&', '&amp;')
+        self.assertIn(expected_abs_url_encoded, html)
+        
+        expected_arxiv_url = self.app._config.get('SCIX_UI_ENDPOINT') + self.app._config.get('ARXIV_URL')
+        expected_arxiv_url_encoded = expected_arxiv_url.format('2023arXiv.test', 'general', 1, 2).replace('&', '&amp;')
+        self.assertIn(expected_arxiv_url_encoded, html)
+
+        
+    def test_payload_to_html_scix_ui_false(self):
+        """Test that scix_ui=False uses ADS endpoints in HTML payload"""
+        test_payload = [{
+            'name': 'Test Query',
+            'query_url': 'https://ui.adsabs.harvard.edu/search/test',
+            'results': [
+                {'bibcode': '2023test', 'title': ['Test Title'], 'author_norm': ['Smith, J'], 'bibstem': ['ApJ']},
+                {'bibcode': '2023arXiv.test', 'title': ['arXiv Test Title'], 'author_norm': ['Jones, A'], 'bibstem': ['arXiv'], 'arxiv_id': 'arXiv:2023.test'}
+            ],
+            'qtype': 'general',
+            'id': 1
+        }]
+        
+        html = utils.payload_to_html(test_payload, col=1, frequency='daily', 
+                                    email_address='test@example.com', scix_ui=False)
+        
+        expected_abs_url = self.app._config.get('UI_ENDPOINT') + self.app._config.get('ABSTRACT_UI_ENDPOINT')
+        expected_abs_url_encoded = expected_abs_url.format('2023test', 'general', 1, 1).replace('&', '&amp;')
+        self.assertIn(expected_abs_url_encoded, html)
+        
+        expected_arxiv_url = self.app._config.get('UI_ENDPOINT') + self.app._config.get('ARXIV_URL')
+        expected_arxiv_url_encoded = expected_arxiv_url.format('2023arXiv.test', 'general', 1, 2).replace('&', '&amp;')
+        self.assertIn(expected_arxiv_url_encoded, html)
 
 
 
