@@ -142,7 +142,8 @@ def get_template_query_results(myADSsetup, scix_ui=False):
                     if q['sort'].startswith('score desc'):
                         name.append(myADSsetup['name'])
                     else:
-                        name.append('Other Recent Papers in Selected Categories')
+                        if not myADSsetup.get('disable_other_papers', False):
+                            name.append('Other Recent Papers in Selected Categories')
             else:
                 name.append(myADSsetup['name'])
         elif myADSsetup['frequency'] == 'weekly':
@@ -280,6 +281,67 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None, 
 
     date_formatted = get_date().strftime("%B %d, %Y")
 
+    max_size_bytes = 25 * 1024 * 1024 
+    target_size = max_size_bytes * 0.9 
+    truncated_payload = []
+    truncated = False 
+    final_html = None
+
+    for item in payload: 
+        test_payload = truncated_payload + [item]
+        test_html = generate_html_with_payload(test_payload, col, frequency, email_address, date_formatted, scix_ui)
+        test_size = len(test_html.encode('utf-8'))
+
+        if test_size <= target_size: 
+            truncated_payload.append(item)
+            final_html = test_html 
+        else: 
+            # Item doesn't fit completely, do binary search to find optimal partial fit
+            original_results = item.get('results', []) 
+
+            # Empty results, but still doesn't fit - break here
+            if not original_results: 
+                truncated = True 
+                break 
+
+            low, high = 0, len(original_results) 
+            best_count = 0 
+            best_html = final_html 
+
+            while low <= high: 
+                mid = (low + high) // 2 
+
+                test_item = item.copy() 
+                test_item['results'] = original_results[:mid]
+                test_payload = truncated_payload + [test_item]
+
+                test_html = generate_html_with_payload(test_payload, col, frequency, email_address, date_formatted, scix_ui)
+                test_size = len(test_html.encode('utf-8'))
+
+                if test_size <= target_size: 
+                    best_count = mid 
+                    best_html = test_html 
+                    low = mid + 1 
+                else: 
+                    high = mid - 1 
+
+            final_item = item.copy() 
+            final_item['results'] = original_results[:best_count]
+            truncated_payload.append(final_item)
+            final_html = best_html 
+
+            if best_count < len(original_results): 
+                truncated = True 
+
+            break
+    
+    return final_html
+                
+                
+
+    
+def generate_html_with_payload(payload, col, frequency, email_address, date_formatted, scix_ui=False):
+
     if scix_ui:
         abs_url = config.get('SCIX_UI_ENDPOINT') 
         arxiv_url = config.get('SCIX_UI_ENDPOINT') 
@@ -289,28 +351,28 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None, 
 
     abs_url += config.get('ABSTRACT_UI_ENDPOINT')
     arxiv_url += config.get('ARXIV_URL')
+
     if col == 1:
         template = env.get_template('one_col.html')
         return template.render(frequency=frequency,
-                               date=date_formatted,
-                               payload=payload,
-                               abs_url=abs_url,
-                               email_address=email_address,
-                               arxiv_url=arxiv_url)
+                            date=date_formatted,
+                            payload=payload,
+                            abs_url=abs_url,
+                            email_address=email_address,
+                            arxiv_url=arxiv_url)
 
     elif col == 2:
         left_col = payload[:len(payload) // 2]
         right_col = payload[len(payload) // 2:]
         template = env.get_template('two_col.html')
         return template.render(frequency=frequency,
-                               date=date_formatted,
-                               left_payload=left_col,
-                               right_payload=right_col,
-                               abs_url=abs_url,
-                               email_address=email_address,
-                               arxiv_url=arxiv_url)
+                            date=date_formatted,
+                            left_payload=left_col,
+                            right_payload=right_col,
+                            abs_url=abs_url,
+                            email_address=email_address,
+                            arxiv_url=arxiv_url)
 
-    else:
-        logger.warning('Incorrect number of columns (col={0}) passed for payload {1}. No formatting done'.
-                       format(col, payload))
-        return None
+    
+    logger.warning('Incorrect number of columns (col={0}) passed for payload {1}. No formatting done'.
+                    format(col, payload))
