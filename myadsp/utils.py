@@ -282,18 +282,26 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None, 
     date_formatted = get_date().strftime("%B %d, %Y")
 
     max_size_bytes = 25 * 1024 * 1024 
-    target_size = max_size_bytes * 0.9 
+    target_size = max_size_bytes * 0.96 
+
+    full_html = generate_html_with_payload(payload, col, frequency, email_address, date_formatted, scix_ui)
+    full_size = len(full_html.encode('utf-8'))
+
+    if full_size <= target_size:
+        return full_html
+
+    # Email is too large, need to truncate
+    logger.info('Email size ({0:.2f} MB) exceeds limit, starting truncation process'.format(full_size / (1024 * 1024)))
+
     truncated_payload = []
-    truncated = False 
     final_html = None
 
     for item in payload: 
-        test_payload = truncated_payload + [item]
-        test_html = generate_html_with_payload(test_payload, col, frequency, email_address, date_formatted, scix_ui)
+        truncated_payload.append(item)
+        test_html = generate_html_with_payload(truncated_payload, col, frequency, email_address, date_formatted, scix_ui)
         test_size = len(test_html.encode('utf-8'))
 
         if test_size <= target_size: 
-            truncated_payload.append(item)
             final_html = test_html 
         else: 
             # Item doesn't fit completely, do binary search to find optimal partial fit
@@ -301,8 +309,9 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None, 
 
             # Empty results, but still doesn't fit - break here
             if not original_results: 
-                truncated = True 
                 break 
+
+            truncated_payload.pop()
 
             low, high = 0, len(original_results) 
             best_count = 0 
@@ -313,9 +322,9 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None, 
 
                 test_item = item.copy() 
                 test_item['results'] = original_results[:mid]
-                test_payload = truncated_payload + [test_item]
+                truncated_payload.append(test_item)
 
-                test_html = generate_html_with_payload(test_payload, col, frequency, email_address, date_formatted, scix_ui)
+                test_html = generate_html_with_payload(truncated_payload, col, frequency, email_address, date_formatted, scix_ui)
                 test_size = len(test_html.encode('utf-8'))
 
                 if test_size <= target_size: 
@@ -323,6 +332,7 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None, 
                     best_html = test_html 
                     low = mid + 1 
                 else: 
+                    truncated_payload.pop()
                     high = mid - 1 
 
             final_item = item.copy() 
@@ -330,16 +340,11 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None, 
             truncated_payload.append(final_item)
             final_html = best_html 
 
-            if best_count < len(original_results): 
-                truncated = True 
-
             break
     
     return final_html
                 
                 
-
-    
 def generate_html_with_payload(payload, col, frequency, email_address, date_formatted, scix_ui=False):
 
     if scix_ui:
