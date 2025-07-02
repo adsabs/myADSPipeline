@@ -809,7 +809,7 @@ class TestmyADSCelery(unittest.TestCase):
         
         # Check size is reasonable (should be well under 25MB)
         html_size = len(html.encode('utf-8'))
-        self.assertLess(html_size, 25 * 1024 * 1024)
+        self.assertLess(html_size, self.app._config.get('MAX_EMAIL_SIZE'))
         self.assertLess(html_size, original_size_one_column)
         self.assertLess(html_size, original_size_two_column)
 
@@ -856,7 +856,7 @@ class TestmyADSCelery(unittest.TestCase):
         
         # Check size
         html_size = len(html.encode('utf-8'))
-        self.assertLess(html_size, 25 * 1024 * 1024)
+        self.assertLess(html_size, self.app._config.get('MAX_EMAIL_SIZE'))
         self.assertLess(html_size, original_size_one_column)
         self.assertLess(html_size, original_size_two_column)
 

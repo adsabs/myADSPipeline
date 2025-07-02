@@ -15,7 +15,7 @@ except ImportError:
 import json
 import os
 from jinja2 import Environment, PackageLoader, select_autoescape
-import datetime
+
 
 # ============================= INITIALIZATION ==================================== #
 # - Use app logger:
@@ -128,7 +128,6 @@ def get_template_query_results(myADSsetup, scix_ui=False):
 
     try:
         setup_query = myADSsetup['query']
-        setup_query_q = setup_query[0]['q']
         if 'sort' not in setup_query[0]:
             setup_query[0]['sort'] = 'date desc, bibcode desc'
     except KeyError:
@@ -142,8 +141,7 @@ def get_template_query_results(myADSsetup, scix_ui=False):
                     if q['sort'].startswith('score desc'):
                         name.append(myADSsetup['name'])
                     else:
-                        if not myADSsetup.get('disable_other_papers', False):
-                            name.append('Other Recent Papers in Selected Categories')
+                        name.append('Other Recent Papers in Selected Categories')
             else:
                 name.append(myADSsetup['name'])
         elif myADSsetup['frequency'] == 'weekly':
@@ -281,13 +279,12 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None, 
 
     date_formatted = get_date().strftime("%B %d, %Y")
 
-    max_size_bytes = 25 * 1024 * 1024 
-    target_size = max_size_bytes * 0.96 
+    max_size_bytes = config.get('MAX_EMAIL_SIZE') # 24MB
 
     full_html = generate_html_with_payload(payload, col, frequency, email_address, date_formatted, scix_ui)
     full_size = len(full_html.encode('utf-8'))
 
-    if full_size <= target_size:
+    if full_size <= max_size_bytes:
         return full_html
 
     # Email is too large, need to truncate
@@ -301,7 +298,7 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None, 
         test_html = generate_html_with_payload(truncated_payload, col, frequency, email_address, date_formatted, scix_ui)
         test_size = len(test_html.encode('utf-8'))
 
-        if test_size <= target_size: 
+        if test_size <= max_size_bytes: 
             final_html = test_html 
         else: 
             # Item doesn't fit completely, do binary search to find optimal partial fit
@@ -313,10 +310,10 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None, 
 
             truncated_payload.pop()
 
+            # Binary search to find optimal partial fit for this item
             low, high = 0, len(original_results) 
-            best_count = 0 
-            best_html = final_html 
-
+            best_html = final_html
+            best_item = None
             while low <= high: 
                 mid = (low + high) // 2 
 
@@ -327,17 +324,16 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None, 
                 test_html = generate_html_with_payload(truncated_payload, col, frequency, email_address, date_formatted, scix_ui)
                 test_size = len(test_html.encode('utf-8'))
 
-                if test_size <= target_size: 
-                    best_count = mid 
+                if test_size <= max_size_bytes: 
                     best_html = test_html 
+                    best_item = test_item
                     low = mid + 1 
                 else: 
                     truncated_payload.pop()
                     high = mid - 1 
 
-            final_item = item.copy() 
-            final_item['results'] = original_results[:best_count]
-            truncated_payload.append(final_item)
+            if best_item:
+                truncated_payload.append(best_item)
             final_html = best_html 
 
             break
