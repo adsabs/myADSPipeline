@@ -166,12 +166,11 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
 
-        query_url = '{endpoint}{arguments}'. \
-                         format(endpoint=self.app._config.get('QUERY_ENDPOINT') % ("",),
-                                arguments=urlencode({
-                                    'q': 'author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
-                                    'sort': 'score desc',
-                                }, doseq=True))
+        query_args = urlencode({
+            'q': 'author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
+            'sort': 'score desc',
+        }, doseq=True)
+        query_url = self.app._config.get('QUERY_ENDPOINT') % query_args
 
         query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': myADSsetup['name'],
@@ -238,7 +237,7 @@ class TestmyADSCelery(unittest.TestCase):
         results = utils.get_template_query_results(myADSsetup)
         start = (adsputils.get_date() - datetime.timedelta(days=25)).date()
         end = adsputils.get_date().date()
-        query_url = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'. \
+        query_url = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'. \
                          format(quote_plus('bibstem:arxiv (arxiv_class:(astro-ph.*) (AGN)) '
                                            'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 quote_plus("score desc, bibcode desc"))
@@ -332,7 +331,7 @@ class TestmyADSCelery(unittest.TestCase):
         )
 
         results = utils.get_template_query_results(myADSsetup)
-        query_url = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
+        query_url = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'.\
                          format(quote_plus('citations(author:Kurtz OR author:"Kurtz, M.")'),
                                 quote_plus("entry_date desc, bibcode desc"))
         query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
@@ -394,7 +393,7 @@ class TestmyADSCelery(unittest.TestCase):
         )
 
         results = utils.get_template_query_results(myADSsetup)
-        query_url = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
+        query_url = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'.\
                          format(quote_plus('author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 quote_plus("score desc, bibcode desc"))
         query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
@@ -519,15 +518,15 @@ class TestmyADSCelery(unittest.TestCase):
         )
 
         results = utils.get_template_query_results(myADSsetup)
-        query_url1 = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
+        query_url1 = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'.\
                          format(quote_plus('AGN arxiv_class:(astro-ph.* OR physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 quote_plus("entry_date desc, bibcode desc"))
         query_url1 = query_url1 + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
-        query_url2 = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
+        query_url2 = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'.\
                          format(quote_plus('trending(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
                                 quote_plus("score desc, bibcode desc"))
         query_url2 = query_url2 + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
-        query_url3 = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
+        query_url3 = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'.\
                          format(quote_plus('useful(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
                                 quote_plus("score desc, bibcode desc"))
         query_url3 = query_url3 + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
@@ -641,7 +640,7 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup, scix_ui=True)
         self.assertEqual(len(results), 1)
-        self.assertIn('https://scixplorer.org/search/', results[0]['query_url'])
+        self.assertIn('https://scixplorer.org/search', results[0]['query_url'])
 
 
     @httpretty.activate
@@ -698,7 +697,7 @@ class TestmyADSCelery(unittest.TestCase):
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(len(results), 1)
         self.assertNotIn('https://scixplorer.org/search/', results[0]['query_url'])
-        self.assertIn('https://ui.adsabs.harvard.edu/search/', results[0]['query_url'])
+        self.assertIn('https://ui.adsabs.harvard.edu/search', results[0]['query_url'])
         
 
     def test_payload_to_html_scix_ui_true(self):
@@ -859,6 +858,65 @@ class TestmyADSCelery(unittest.TestCase):
         self.assertLess(html_size, self.app._config.get('MAX_EMAIL_SIZE'))
         self.assertLess(html_size, original_size_one_column)
         self.assertLess(html_size, original_size_two_column)
+
+    def test_generate_html_with_payload_invalid_columns(self):
+        """Test that generate_html_with_payload returns None for invalid column count"""
+        test_payload = [{
+            'name': 'Test Query',
+            'query_url': 'https://ui.adsabs.harvard.edu/search/test',
+            'results': [
+                {'bibcode': '2023test', 'title': ['Test Title'], 'author_norm': ['Smith, J'], 'bibstem': ['ApJ']}
+            ],
+            'qtype': 'general',
+            'id': 1
+        }]
+
+        date_formatted = get_date().strftime("%B %d, %Y")
+
+        # Test invalid column count (not 1 or 2)
+        with patch.object(utils.logger, 'warning') as mock_logger:
+            result = utils.generate_html_with_payload(
+                payload=test_payload,
+                col=3,  # Invalid column count
+                frequency='daily',
+                email_address='test@example.com',
+                date_formatted=date_formatted,
+                scix_ui=False
+            )
+            
+            # Should return None
+            self.assertIsNone(result)
+            
+
+    def test_payload_to_html_invalid_columns(self):
+        """Test that payload_to_html handles invalid column count gracefully"""
+        test_payload = [{
+            'name': 'Test Query',
+            'query_url': 'https://ui.adsabs.harvard.edu/search/test',
+            'results': [
+                {'bibcode': '2023test', 'title': ['Test Title'], 'author_norm': ['Smith, J'], 'bibstem': ['ApJ']}
+            ],
+            'qtype': 'general',
+            'id': 1
+        }]
+
+        # Test invalid column count (not 1 or 2)
+        with patch.object(utils.logger, 'warning') as mock_logger:
+            result = utils.payload_to_html(
+                payload=test_payload,
+                col=5,  # Invalid column count
+                frequency='daily',
+                email_address='test@example.com',
+                scix_ui=False
+            )
+            
+            # Should return None since generate_html_with_payload returns None
+            self.assertIsNone(result)
+            
+            # Should log a warning from generate_html_with_payload
+            self.assertTrue(mock_logger.called)
+            self.assertIn('Incorrect number of columns (col=5)', mock_logger.call_args[0][0])
+            self.assertIn('No formatting done', mock_logger.call_args[0][0])
 
 
 

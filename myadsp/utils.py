@@ -190,7 +190,7 @@ def get_template_query_results(myADSsetup, scix_ui=False):
                 name[i] = name[i] % int(cites_r.json()['stats']['stats_fields']['citation_count']['sum'])
         
         ui_endpoint = config.get('SCIX_UI_ENDPOINT') if scix_ui else config.get('UI_ENDPOINT')
-        query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', ui_endpoint + '/search/') \
+        query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', ui_endpoint + '/search?') \
                     + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         payload.append({'name': name[i], 'query_url': query_url, 'query': myADSsetup['query'][i]['q'], 'results': docs})
 
@@ -277,11 +277,23 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None, 
     :return: HTML formatted payload
     """
 
+    # Validate inputs early
+    if col not in [1, 2]:
+        logger.warning('Incorrect number of columns (col={0}) passed for payload {1}. No formatting done'.format(col, payload))
+        return None
+    
+    if not payload:
+        logger.warning('Empty or None payload passed to payload_to_html')
+        return None
+
     date_formatted = get_date().strftime("%B %d, %Y")
 
     max_size_bytes = config.get('MAX_EMAIL_SIZE') # 24MB
 
     full_html = generate_html_with_payload(payload, col, frequency, email_address, date_formatted, scix_ui)
+    if full_html is None:
+        logger.error('generate_html_with_payload returned None - template rendering may have failed')
+        return None
     full_size = len(full_html.encode('utf-8'))
 
     if full_size <= max_size_bytes:
@@ -373,7 +385,3 @@ def generate_html_with_payload(payload, col, frequency, email_address, date_form
                             abs_url=abs_url,
                             email_address=email_address,
                             arxiv_url=arxiv_url)
-
-    
-    logger.warning('Incorrect number of columns (col={0}) passed for payload {1}. No formatting done'.
-                    format(col, payload))
