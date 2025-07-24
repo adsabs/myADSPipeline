@@ -15,7 +15,7 @@ except ImportError:
 import json
 import os
 from jinja2 import Environment, PackageLoader, select_autoescape
-import datetime
+
 
 # ============================= INITIALIZATION ==================================== #
 # - Use app logger:
@@ -128,7 +128,6 @@ def get_template_query_results(myADSsetup, scix_ui=False):
 
     try:
         setup_query = myADSsetup['query']
-        setup_query_q = setup_query[0]['q']
         if 'sort' not in setup_query[0]:
             setup_query[0]['sort'] = 'date desc, bibcode desc'
     except KeyError:
@@ -191,7 +190,7 @@ def get_template_query_results(myADSsetup, scix_ui=False):
                 name[i] = name[i] % int(cites_r.json()['stats']['stats_fields']['citation_count']['sum'])
         
         ui_endpoint = config.get('SCIX_UI_ENDPOINT') if scix_ui else config.get('UI_ENDPOINT')
-        query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', ui_endpoint + '/search/') \
+        query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', ui_endpoint + '/search?') \
                     + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         payload.append({'name': name[i], 'query_url': query_url, 'query': myADSsetup['query'][i]['q'], 'results': docs})
 
@@ -278,7 +277,83 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None, 
     :return: HTML formatted payload
     """
 
+    # Validate inputs early
+    if col not in [1, 2]:
+        logger.warning('Incorrect number of columns (col={0}) passed for payload {1}. No formatting done'.format(col, payload))
+        return None
+    
+    if not payload:
+        logger.warning('Empty or None payload passed to payload_to_html')
+        return None
+
     date_formatted = get_date().strftime("%B %d, %Y")
+
+    max_size_bytes = config.get('MAX_EMAIL_SIZE') # 24MB
+
+    full_html = generate_html_with_payload(payload, col, frequency, email_address, date_formatted, scix_ui)
+    if full_html is None:
+        logger.error('generate_html_with_payload returned None - template rendering may have failed')
+        return None
+    full_size = len(full_html.encode('utf-8'))
+
+    if full_size <= max_size_bytes:
+        return full_html
+
+    # Email is too large, need to truncate
+    logger.info('Email size ({0:.2f} MB) exceeds limit, starting truncation process'.format(full_size / (1024 * 1024)))
+
+    truncated_payload = []
+    final_html = None
+
+    for item in payload: 
+        truncated_payload.append(item)
+        test_html = generate_html_with_payload(truncated_payload, col, frequency, email_address, date_formatted, scix_ui)
+        test_size = len(test_html.encode('utf-8'))
+
+        if test_size <= max_size_bytes: 
+            final_html = test_html 
+        else: 
+            # Item doesn't fit completely, do binary search to find optimal partial fit
+            original_results = item.get('results', []) 
+
+            # Empty results, but still doesn't fit - break here
+            if not original_results: 
+                break 
+
+            truncated_payload.pop()
+
+            # Binary search to find optimal partial fit for this item
+            low, high = 0, len(original_results) 
+            best_html = final_html
+            best_item = None
+            while low <= high: 
+                mid = (low + high) // 2 
+
+                test_item = item.copy() 
+                test_item['results'] = original_results[:mid]
+                truncated_payload.append(test_item)
+
+                test_html = generate_html_with_payload(truncated_payload, col, frequency, email_address, date_formatted, scix_ui)
+                test_size = len(test_html.encode('utf-8'))
+
+                if test_size <= max_size_bytes: 
+                    best_html = test_html 
+                    best_item = test_item
+                    low = mid + 1 
+                else: 
+                    truncated_payload.pop()
+                    high = mid - 1 
+
+            if best_item:
+                truncated_payload.append(best_item)
+            final_html = best_html 
+
+            break
+    
+    return final_html
+                
+                
+def generate_html_with_payload(payload, col, frequency, email_address, date_formatted, scix_ui=False):
 
     if scix_ui:
         abs_url = config.get('SCIX_UI_ENDPOINT') 
@@ -289,28 +364,24 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None, 
 
     abs_url += config.get('ABSTRACT_UI_ENDPOINT')
     arxiv_url += config.get('ARXIV_URL')
+
     if col == 1:
         template = env.get_template('one_col.html')
         return template.render(frequency=frequency,
-                               date=date_formatted,
-                               payload=payload,
-                               abs_url=abs_url,
-                               email_address=email_address,
-                               arxiv_url=arxiv_url)
+                            date=date_formatted,
+                            payload=payload,
+                            abs_url=abs_url,
+                            email_address=email_address,
+                            arxiv_url=arxiv_url)
 
     elif col == 2:
         left_col = payload[:len(payload) // 2]
         right_col = payload[len(payload) // 2:]
         template = env.get_template('two_col.html')
         return template.render(frequency=frequency,
-                               date=date_formatted,
-                               left_payload=left_col,
-                               right_payload=right_col,
-                               abs_url=abs_url,
-                               email_address=email_address,
-                               arxiv_url=arxiv_url)
-
-    else:
-        logger.warning('Incorrect number of columns (col={0}) passed for payload {1}. No formatting done'.
-                       format(col, payload))
-        return None
+                            date=date_formatted,
+                            left_payload=left_col,
+                            right_payload=right_col,
+                            abs_url=abs_url,
+                            email_address=email_address,
+                            arxiv_url=arxiv_url)

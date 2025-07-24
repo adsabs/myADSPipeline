@@ -15,6 +15,7 @@ import adsputils
 from myadsp import app, utils
 from myadsp.models import Base
 from ..emails import myADSTemplate
+from adsputils import get_date
 
 payload = [{'name': 'Query 1',
             'query_url': 'https://ui.adsabs.harvard.edu/search/q=bibstem%3Aarxiv?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl',
@@ -165,12 +166,11 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
 
-        query_url = '{endpoint}{arguments}'. \
-                         format(endpoint=self.app._config.get('QUERY_ENDPOINT') % ("",),
-                                arguments=urlencode({
-                                    'q': 'author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
-                                    'sort': 'score desc',
-                                }, doseq=True))
+        query_args = urlencode({
+            'q': 'author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
+            'sort': 'score desc',
+        }, doseq=True)
+        query_url = self.app._config.get('QUERY_ENDPOINT') % query_args
 
         query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': myADSsetup['name'],
@@ -237,7 +237,7 @@ class TestmyADSCelery(unittest.TestCase):
         results = utils.get_template_query_results(myADSsetup)
         start = (adsputils.get_date() - datetime.timedelta(days=25)).date()
         end = adsputils.get_date().date()
-        query_url = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'. \
+        query_url = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'. \
                          format(quote_plus('bibstem:arxiv (arxiv_class:(astro-ph.*) (AGN)) '
                                            'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 quote_plus("score desc, bibcode desc"))
@@ -331,7 +331,7 @@ class TestmyADSCelery(unittest.TestCase):
         )
 
         results = utils.get_template_query_results(myADSsetup)
-        query_url = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
+        query_url = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'.\
                          format(quote_plus('citations(author:Kurtz OR author:"Kurtz, M.")'),
                                 quote_plus("entry_date desc, bibcode desc"))
         query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
@@ -393,7 +393,7 @@ class TestmyADSCelery(unittest.TestCase):
         )
 
         results = utils.get_template_query_results(myADSsetup)
-        query_url = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
+        query_url = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'.\
                          format(quote_plus('author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 quote_plus("score desc, bibcode desc"))
         query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
@@ -518,15 +518,15 @@ class TestmyADSCelery(unittest.TestCase):
         )
 
         results = utils.get_template_query_results(myADSsetup)
-        query_url1 = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
+        query_url1 = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'.\
                          format(quote_plus('AGN arxiv_class:(astro-ph.* OR physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 quote_plus("entry_date desc, bibcode desc"))
         query_url1 = query_url1 + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
-        query_url2 = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
+        query_url2 = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'.\
                          format(quote_plus('trending(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
                                 quote_plus("score desc, bibcode desc"))
         query_url2 = query_url2 + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
-        query_url3 = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
+        query_url3 = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'.\
                          format(quote_plus('useful(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
                                 quote_plus("score desc, bibcode desc"))
         query_url3 = query_url3 + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
@@ -640,7 +640,7 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup, scix_ui=True)
         self.assertEqual(len(results), 1)
-        self.assertIn('https://scixplorer.org/search/', results[0]['query_url'])
+        self.assertIn('https://scixplorer.org/search', results[0]['query_url'])
 
 
     @httpretty.activate
@@ -697,7 +697,7 @@ class TestmyADSCelery(unittest.TestCase):
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(len(results), 1)
         self.assertNotIn('https://scixplorer.org/search/', results[0]['query_url'])
-        self.assertIn('https://ui.adsabs.harvard.edu/search/', results[0]['query_url'])
+        self.assertIn('https://ui.adsabs.harvard.edu/search', results[0]['query_url'])
         
 
     def test_payload_to_html_scix_ui_true(self):
@@ -749,14 +749,174 @@ class TestmyADSCelery(unittest.TestCase):
         expected_arxiv_url_encoded = expected_arxiv_url.format('2023arXiv.test', 'general', 1, 2).replace('&', '&amp;')
         self.assertIn(expected_arxiv_url_encoded, html)
 
+    def test_payload_to_html_no_truncation(self):
+        """Test that small payloads are not truncated"""
+        test_payload = [{
+            'name': 'Small Query',
+            'query_url': 'https://ui.adsabs.harvard.edu/search/test',
+            'results': [
+                {'bibcode': '2023test', 'title': ['Test Title'], 'author_norm': ['Smith, J'], 'bibstem': ['ApJ']}
+            ],
+            'qtype': 'general',
+            'id': 1
+        }]
+
+        html = utils.payload_to_html(test_payload, col=1, frequency='daily',
+                                            email_address='test@example.com', scix_ui=False)
+        
+        self.assertIn('Test Title', html)
+        self.assertIn('Smith, J', html)
 
 
+    def test_payload_to_html_with_truncation(self):
+        """Test that large payloads are truncated"""
+        # Create a large payload that will exceed size limits
+        large_results = []
+        for i in range(10000):  # Create many results to force truncation
+            large_results.append({
+                'bibcode': f'2023test{i:04d}',
+                'title': [f'Very Long Test Title That Takes Up Space Number {i} ' * 10],  # Long titles
+                'author_norm': [f'Author{i}, J'] * 20,  # Many authors
+                'bibstem': ['ApJ'],
+                'year': '2023'
+            })
+        
+        test_payload = [{
+            'name': 'Large Query',
+            'query_url': 'https://ui.adsabs.harvard.edu/search/test',
+            'results': large_results,
+            'qtype': 'general',
+            'id': 1
+        }]
+
+        date_formatted = get_date().strftime("%B %d, %Y")
+
+        original_results_one_column = utils.generate_html_with_payload(test_payload, col=1, frequency='daily',
+                                            email_address='test@example.com', scix_ui=False, date_formatted=date_formatted)
+        original_size_one_column = len(original_results_one_column.encode('utf-8'))
+
+        original_results_two_column = utils.generate_html_with_payload(test_payload, col=2, frequency='daily',
+                                            email_address='test@example.com', scix_ui=False, date_formatted=date_formatted)
+        original_size_two_column = len(original_results_two_column.encode('utf-8'))
+
+        html = utils.payload_to_html(test_payload, col=1, frequency='daily',
+                                            email_address='test@example.com', scix_ui=False)
+        
+        # Assert that there are results in the HTML
+        result_count = html.count('2023test')
+        self.assertGreater(result_count, 0)
+        
+        # Check size is reasonable (should be well under 25MB)
+        html_size = len(html.encode('utf-8'))
+        self.assertLess(html_size, self.app._config.get('MAX_EMAIL_SIZE'))
+        self.assertLess(html_size, original_size_one_column)
+        self.assertLess(html_size, original_size_two_column)
 
 
+    def test_payload_to_html_multiple_queries_truncation(self):
+        """Test truncation with multiple queries"""
+        # Create multiple queries where later ones should be truncated
+        test_payload = []
+        for q in range(100):
+            results = []
+            for i in range(120):
+                results.append({
+                    'bibcode': f'2023q{q}r{i:03d}',
+                    'title': [f'Query {q} Result {i} Title ' * 20],  # Long titles
+                    'author_norm': [f'Author{i}, J'],
+                    'bibstem': ['ApJ']
+                })
+            
+            test_payload.append({
+                'name': f'Query {q}',
+                'query_url': f'https://ui.adsabs.harvard.edu/search/query{q}',
+                'results': results,
+                'qtype': 'general',
+                'id': q
+            })
 
+        date_formatted = get_date().strftime("%B %d, %Y")
 
+        original_results_one_column = utils.generate_html_with_payload(test_payload, col=1, frequency='daily',
+                                            email_address='test@example.com', scix_ui=False, date_formatted=date_formatted)
+        original_size_one_column = len(original_results_one_column.encode('utf-8'))
 
+        original_results_two_column = utils.generate_html_with_payload(test_payload, col=2, frequency='daily',
+                                            email_address='test@example.com', scix_ui=False, date_formatted=date_formatted)
+        original_size_two_column = len(original_results_two_column.encode('utf-8'))
 
+        html = utils.payload_to_html(test_payload, col=1, frequency='daily',
+                                            email_address='test@example.com', scix_ui=False)
+        
+        # Should have some queries but not all
+        query_count = sum(1 for i in range(100) if f'Query {i}' in html)
+        self.assertGreater(query_count, 0)
+        self.assertLess(query_count, 100)
+        
+        # Check size
+        html_size = len(html.encode('utf-8'))
+        self.assertLess(html_size, self.app._config.get('MAX_EMAIL_SIZE'))
+        self.assertLess(html_size, original_size_one_column)
+        self.assertLess(html_size, original_size_two_column)
+
+    def test_generate_html_with_payload_invalid_columns(self):
+        """Test that generate_html_with_payload returns None for invalid column count"""
+        test_payload = [{
+            'name': 'Test Query',
+            'query_url': 'https://ui.adsabs.harvard.edu/search/test',
+            'results': [
+                {'bibcode': '2023test', 'title': ['Test Title'], 'author_norm': ['Smith, J'], 'bibstem': ['ApJ']}
+            ],
+            'qtype': 'general',
+            'id': 1
+        }]
+
+        date_formatted = get_date().strftime("%B %d, %Y")
+
+        # Test invalid column count (not 1 or 2)
+        with patch.object(utils.logger, 'warning') as mock_logger:
+            result = utils.generate_html_with_payload(
+                payload=test_payload,
+                col=3,  # Invalid column count
+                frequency='daily',
+                email_address='test@example.com',
+                date_formatted=date_formatted,
+                scix_ui=False
+            )
+            
+            # Should return None
+            self.assertIsNone(result)
+            
+
+    def test_payload_to_html_invalid_columns(self):
+        """Test that payload_to_html handles invalid column count gracefully"""
+        test_payload = [{
+            'name': 'Test Query',
+            'query_url': 'https://ui.adsabs.harvard.edu/search/test',
+            'results': [
+                {'bibcode': '2023test', 'title': ['Test Title'], 'author_norm': ['Smith, J'], 'bibstem': ['ApJ']}
+            ],
+            'qtype': 'general',
+            'id': 1
+        }]
+
+        # Test invalid column count (not 1 or 2)
+        with patch.object(utils.logger, 'warning') as mock_logger:
+            result = utils.payload_to_html(
+                payload=test_payload,
+                col=5,  # Invalid column count
+                frequency='daily',
+                email_address='test@example.com',
+                scix_ui=False
+            )
+            
+            # Should return None since generate_html_with_payload returns None
+            self.assertIsNone(result)
+            
+            # Should log a warning from generate_html_with_payload
+            self.assertTrue(mock_logger.called)
+            self.assertIn('Incorrect number of columns (col=5)', mock_logger.call_args[0][0])
+            self.assertIn('No formatting done', mock_logger.call_args[0][0])
 
 
 

@@ -14,7 +14,7 @@ UI_ENDPOINT = 'https://ui.adsabs.harvard.edu'
 SCIX_UI_ENDPOINT = 'https://scixplorer.org'
 ABSTRACT_UI_ENDPOINT = '/abs/{0}/abstract?utm_source=myads&utm_medium=email&utm_campaign=type:{1}&utm_term={2}&utm_content=rank:{3}'
 BIGQUERY_ENDPOINT = UI_ENDPOINT + '/search/q=docs(%s)'
-QUERY_ENDPOINT = UI_ENDPOINT + '/search/%s'
+QUERY_ENDPOINT = UI_ENDPOINT + '/search?%s' 
 
 API_ENDPOINT = 'https://api.adsabs.harvard.edu'
 API_SOLR_QUERY_ENDPOINT = API_ENDPOINT + '/v1/search/query/'
@@ -62,3 +62,6 @@ MAIL_PASSWORD = None
 MAIL_PORT = 25
 MAIL_SERVER = None
 MAIL_USERNAME = None
+
+
+MAX_EMAIL_SIZE = 24 * 1024 * 1024
