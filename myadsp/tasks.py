@@ -214,10 +214,12 @@ def task_process_myads(message):
     else:
         email = utils.get_user_email(userid=userid)
 
+    # Dynamic subject based on UI type
+    service_name = 'SciX' if scix_ui else 'myADS'
     if message['frequency'] == 'daily':
-        subject = 'Daily myADS Notification'
+        subject = f'Daily {service_name} Notification'
     else:
-        subject = 'Weekly myADS Notification'
+        subject = f'Weekly {service_name} Notification'
 
     payload_plain = utils.payload_to_plain(payload)
     if len(payload) < app.conf.get('NUM_QUERIES_TWO_COL', 3):
@@ -228,7 +230,8 @@ def task_process_myads(message):
                            email_template=myADSTemplate,
                            payload_plain=payload_plain,
                            payload_html=payload_html,
-                           subject=subject)
+                           subject=subject,
+                           service_name=service_name)
 
     if msg:
         # update author table w/ last sent datetime

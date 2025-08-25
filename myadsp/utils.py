@@ -38,7 +38,7 @@ env = Environment(
 
 # =============================== FUNCTIONS ======================================= #
 
-def send_email(email_addr='', email_template=Email, payload_plain=None, payload_html=None, subject=None):
+def send_email(email_addr='', email_template=Email, payload_plain=None, payload_html=None, subject=None, service_name='myADS'):
     """
     Encrypts a payload using itsDangerous.TimeSerializer, adding it along with a base
     URL to an email template. Sends an email with this data using the current app's
@@ -48,6 +48,7 @@ def send_email(email_addr='', email_template=Email, payload_plain=None, payload_
     :param payload_plain: basestring
     :param payload_html: basestring (formatted HTML)
     :param subject: basestring
+    :param service_name: basestring (myADS or SciX)
     :return: msg: MIMEMultipart
     """
     if (email_addr == '') or (email_addr is None):
@@ -65,7 +66,10 @@ def send_email(email_addr='', email_template=Email, payload_plain=None, payload_
     msg["Subject"] = subject
     msg["From"] = config.get('MAIL_DEFAULT_SENDER')
     msg["To"] = email_addr
-    plain = MIMEText(email_template.msg_plain.format(payload=payload_plain), "plain")
+    # Create dynamic plain text with service name
+    plain_text_header = f"{service_name} Personal Notification Service Results\n\n"
+    plain_text_content = plain_text_header + payload_plain
+    plain = MIMEText(plain_text_content, "plain")
     html = MIMEText(email_template.msg_html.format(payload=payload_html, email_address=email_addr), "html")
     msg.attach(plain)
     msg.attach(html)
@@ -358,9 +362,11 @@ def generate_html_with_payload(payload, col, frequency, email_address, date_form
     if scix_ui:
         abs_url = config.get('SCIX_UI_ENDPOINT') 
         arxiv_url = config.get('SCIX_UI_ENDPOINT') 
+        service_name = 'SciX'
     else:
         abs_url = config.get('UI_ENDPOINT')
         arxiv_url = config.get('UI_ENDPOINT')
+        service_name = 'myADS'
 
     abs_url += config.get('ABSTRACT_UI_ENDPOINT')
     arxiv_url += config.get('ARXIV_URL')
@@ -372,7 +378,8 @@ def generate_html_with_payload(payload, col, frequency, email_address, date_form
                             payload=payload,
                             abs_url=abs_url,
                             email_address=email_address,
-                            arxiv_url=arxiv_url)
+                            arxiv_url=arxiv_url,
+                            service_name=service_name)
 
     elif col == 2:
         left_col = payload[:len(payload) // 2]
@@ -384,4 +391,5 @@ def generate_html_with_payload(payload, col, frequency, email_address, date_form
                             right_payload=right_col,
                             abs_url=abs_url,
                             email_address=email_address,
-                            arxiv_url=arxiv_url)
+                            arxiv_url=arxiv_url,
+                            service_name=service_name)
