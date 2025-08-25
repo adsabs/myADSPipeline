@@ -918,5 +918,105 @@ class TestmyADSCelery(unittest.TestCase):
             self.assertIn('Incorrect number of columns (col=5)', mock_logger.call_args[0][0])
             self.assertIn('No formatting done', mock_logger.call_args[0][0])
 
+    def test_generate_html_with_payload_dynamic_service_name_myads(self):
+        """Test that generate_html_with_payload includes myADS service name when scix_ui=False"""
+        test_payload = [{
+            'name': 'Test Query',
+            'query_url': 'https://ui.adsabs.harvard.edu/search?{0}&{1}',
+            'query': 'test query',
+            'results': [{'bibcode': '2023test', 'title': ['Test Title'], 'author_norm': ['Smith, J'], 'bibstem': ['ApJ']}],
+            'qtype': 'general',
+            'id': 1
+        }]
+        
+        html = utils.generate_html_with_payload(
+            payload=test_payload,
+            col=1,
+            frequency='daily',
+            email_address='test@example.com',
+            date_formatted='January 15, 2024',
+            scix_ui=False
+        )
+        
+        # Should contain myADS in the title
+        self.assertIn('myADS - Daily email (January 15, 2024)', html)
+
+    def test_generate_html_with_payload_dynamic_service_name_scix(self):
+        """Test that generate_html_with_payload includes SciX service name when scix_ui=True"""
+        test_payload = [{
+            'name': 'Test Query',
+            'query_url': 'https://scixplorer.org/search?{0}&{1}',
+            'query': 'test query',
+            'results': [{'bibcode': '2023test', 'title': ['Test Title'], 'author_norm': ['Smith, J'], 'bibstem': ['ApJ']}],
+            'qtype': 'general',
+            'id': 1
+        }]
+        
+        html = utils.generate_html_with_payload(
+            payload=test_payload,
+            col=1,
+            frequency='weekly',
+            email_address='test@example.com',
+            date_formatted='January 15, 2024',
+            scix_ui=True
+        )
+        
+        # Should contain SciX in the title
+        self.assertIn('SciX - Weekly email (January 15, 2024)', html)
+
+    def test_send_email_dynamic_plain_text_myads(self):
+        """Test that send_email creates dynamic plain text header for myADS"""
+        
+        with patch('smtplib.SMTP') as mock_smtp:
+            mock_server = mock_smtp.return_value
+            mock_server.send_message.return_value = {}
+            
+            msg = utils.send_email(
+                email_addr='test@example.com',
+                email_template=myADSTemplate,
+                payload_plain='Test payload content',
+                payload_html='<p>Test HTML content</p>',
+                subject='Test Subject',
+                service_name='myADS'
+            )
+            
+            # Get the plain text part
+            plain_part = None
+            for part in msg.walk():
+                if part.get_content_type() == 'text/plain':
+                    plain_part = part.get_payload()
+                    break
+            
+            self.assertIsNotNone(plain_part)
+            self.assertIn('myADS Personal Notification Service Results', plain_part)
+            self.assertIn('Test payload content', plain_part)
+
+    def test_send_email_dynamic_plain_text_scix(self):
+        """Test that send_email creates dynamic plain text header for SciX"""        
+        
+        with patch('smtplib.SMTP') as mock_smtp:
+            mock_server = mock_smtp.return_value
+            mock_server.send_message.return_value = {}
+            
+            msg = utils.send_email(
+                email_addr='test@example.com',
+                email_template=myADSTemplate,
+                payload_plain='Test payload content',
+                payload_html='<p>Test HTML content</p>',
+                subject='Test Subject',
+                service_name='SciX'
+            )
+            
+            # Get the plain text part
+            plain_part = None
+            for part in msg.walk():
+                if part.get_content_type() == 'text/plain':
+                    plain_part = part.get_payload()
+                    break
+            
+            self.assertIsNotNone(plain_part)
+            self.assertIn('SciX Personal Notification Service Results', plain_part)
+            self.assertIn('Test payload content', plain_part)
+
 
 
