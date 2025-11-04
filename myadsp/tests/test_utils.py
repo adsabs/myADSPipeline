@@ -172,7 +172,7 @@ class TestmyADSCelery(unittest.TestCase):
         }, doseq=True)
         query_url = self.app._config.get('QUERY_ENDPOINT') % query_args
 
-        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
+        query_url = query_url + '&utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query_url': query_url,
                                     'results': [{u'arxiv_id': u'arXiv:1234:5678',
@@ -241,7 +241,7 @@ class TestmyADSCelery(unittest.TestCase):
                          format(quote_plus('bibstem:arxiv (arxiv_class:(astro-ph.*) (AGN)) '
                                            'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 quote_plus("score desc, bibcode desc"))
-        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
+        query_url = query_url + '&utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query': 'bibstem:arxiv (arxiv_class:(astro-ph.*) (AGN)) '
                                              'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
@@ -334,7 +334,9 @@ class TestmyADSCelery(unittest.TestCase):
         query_url = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'.\
                          format(quote_plus('citations(author:Kurtz OR author:"Kurtz, M.")'),
                                 quote_plus("entry_date desc, bibcode desc"))
-        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
+        query_url = query_url + '&utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
+
+        breakpoint()
         self.assertEqual(results, [{'name': 'Test Query - citations (Citations: 161491)',
                                     'query': 'citations(author:Kurtz OR author:"Kurtz, M.")',
                                     'query_url': query_url,
@@ -396,7 +398,7 @@ class TestmyADSCelery(unittest.TestCase):
         query_url = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'.\
                          format(quote_plus('author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 quote_plus("score desc, bibcode desc"))
-        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
+        query_url = query_url + '&utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query': 'author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
                                     'query_url': query_url,
@@ -521,15 +523,15 @@ class TestmyADSCelery(unittest.TestCase):
         query_url1 = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'.\
                          format(quote_plus('AGN arxiv_class:(astro-ph.* OR physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 quote_plus("entry_date desc, bibcode desc"))
-        query_url1 = query_url1 + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
+        query_url1 = query_url1 + '&utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         query_url2 = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'.\
                          format(quote_plus('trending(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
                                 quote_plus("score desc, bibcode desc"))
-        query_url2 = query_url2 + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
+        query_url2 = query_url2 + '&utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         query_url3 = 'https://ui.adsabs.harvard.edu/search?q={0}&sort={1}'.\
                          format(quote_plus('useful(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
                                 quote_plus("score desc, bibcode desc"))
-        query_url3 = query_url3 + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
+        query_url3 = query_url3 + '&utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': 'Test Query - keywords - Recent Papers',
                                     'query': 'AGN arxiv_class:(astro-ph.* OR physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
                                     'query_url': query_url1,
