@@ -336,7 +336,6 @@ class TestmyADSCelery(unittest.TestCase):
                                 quote_plus("entry_date desc, bibcode desc"))
         query_url = query_url + '&utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
 
-        breakpoint()
         self.assertEqual(results, [{'name': 'Test Query - citations (Citations: 161491)',
                                     'query': 'citations(author:Kurtz OR author:"Kurtz, M.")',
                                     'query_url': query_url,
