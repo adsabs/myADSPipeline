@@ -205,7 +205,6 @@ def get_template_query_results(myADSsetup, scix_ui=False):
             "&utm_term={1}&utm_content=queryurl"
         )
 
-        # Append with correct separator
         separator = '&' if '?' in query_url else '?'
         query_url = f"{query_url}{separator}{utm_params}"
 
