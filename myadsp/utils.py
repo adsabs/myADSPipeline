@@ -194,8 +194,20 @@ def get_template_query_results(myADSsetup, scix_ui=False):
                 name[i] = name[i] % int(cites_r.json()['stats']['stats_fields']['citation_count']['sum'])
         
         ui_endpoint = config.get('SCIX_UI_ENDPOINT') if scix_ui else config.get('UI_ENDPOINT')
-        query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', ui_endpoint + '/search?') \
-                    + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
+        
+        query_url = query.replace(
+                config.get('API_SOLR_QUERY_ENDPOINT') + '?',
+                ui_endpoint + '/search?'
+            )
+
+        utm_params = (
+            "utm_source=myads&utm_medium=email&utm_campaign=type:{0}"
+            "&utm_term={1}&utm_content=queryurl"
+        )
+
+        separator = '&' if '?' in query_url else '?'
+        query_url = f"{query_url}{separator}{utm_params}"
+
         payload.append({'name': name[i], 'query_url': query_url, 'query': myADSsetup['query'][i]['q'], 'results': docs})
 
     return payload
